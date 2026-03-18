@@ -21,7 +21,7 @@ export async function getOne(req: Request, res: Response, next: NextFunction): P
 
 export async function create(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { title, description, date, endDate, type, imageFileId } = req.body;
+    const { title, description, date, endDate, type, imageUrl } = req.body;
     if (!title || !date || !type) {
       res.status(400).json({ error: "title, date, and type are required" });
       return;
@@ -32,7 +32,7 @@ export async function create(req: Request, res: Response, next: NextFunction): P
       date,
       endDate,
       type,
-      imageFileId,
+      imageUrl,
     });
     res.status(201).json(item);
   } catch (err) {
@@ -42,21 +42,21 @@ export async function create(req: Request, res: Response, next: NextFunction): P
 
 export async function update(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { title, description, date, endDate, type, imageFileId } = req.body;
+    const { title, description, date, endDate, type, imageUrl } = req.body;
     const data: {
       title?: string;
       description?: string;
       date?: string | Date;
       endDate?: string | Date;
       type?: string;
-      imageFileId?: string;
+      imageUrl?: string;
     } = {};
     if (title !== undefined) data.title = title;
     if (description !== undefined) data.description = description;
     if (date !== undefined) data.date = date;
     if (endDate !== undefined) data.endDate = endDate;
     if (type !== undefined) data.type = type;
-    if (imageFileId !== undefined) data.imageFileId = imageFileId;
+    if (imageUrl !== undefined) data.imageUrl = imageUrl;
     const item = await eventService.update(req.params.id, data);
     res.json(item);
   } catch (err) {

@@ -29,7 +29,7 @@ const schema = z.object({
   date: z.string().min(1, "Date is required"),
   endDate: z.string().optional(),
   type: z.enum(EVENT_TYPES),
-  imageFileId: z.string().optional(),
+  imageUrl: z.string().optional(),
 });
 
 type FormState = z.infer<typeof schema>;
@@ -63,7 +63,7 @@ function defaults(initialValues?: Partial<FormState>): FormState {
     date: toInputDate(initialValues?.date),
     endDate: toInputDate(initialValues?.endDate),
     type: initialValues?.type ?? "event",
-    imageFileId: initialValues?.imageFileId ?? "",
+    imageUrl: initialValues?.imageUrl ?? "",
   };
 }
 
@@ -207,12 +207,12 @@ export default function CreateEventForm({
           />
           <FormField
             control={form.control}
-            name="imageFileId"
+            name="imageUrl"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Google Drive image (optional)</FormLabel>
+                <FormLabel>Image URL (optional)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Drive file ID or share URL" {...field} />
+                  <Input placeholder="https://..." {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

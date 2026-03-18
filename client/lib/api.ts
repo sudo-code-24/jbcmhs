@@ -48,7 +48,7 @@ export function createAnnouncement(data: {
   content: string;
   category: AnnouncementCategory;
   datePosted?: string;
-  imageFileId?: string;
+  imageUrl?: string;
 }): Promise<Announcement> {
   return fetchApi<Announcement>("/api/announcements", {
     method: "POST",
@@ -57,7 +57,7 @@ export function createAnnouncement(data: {
 }
 export function updateAnnouncement(
   id: number,
-  data: { title?: string; content?: string; category?: AnnouncementCategory; datePosted?: string; imageFileId?: string }
+  data: { title?: string; content?: string; category?: AnnouncementCategory; datePosted?: string; imageUrl?: string }
 ): Promise<Announcement> {
   return fetchApi<Announcement>(`/api/announcements/${id}`, {
     method: "PUT",
@@ -73,7 +73,7 @@ export function createEvent(data: {
   date: string;
   endDate?: string;
   type: EventType;
-  imageFileId?: string;
+  imageUrl?: string;
 }): Promise<Event> {
   return fetchApi<Event>("/api/events", {
     method: "POST",
@@ -88,7 +88,7 @@ export function updateEvent(
     date?: string;
     endDate?: string;
     type?: EventType;
-    imageFileId?: string;
+    imageUrl?: string;
   }
 ): Promise<Event> {
   return fetchApi<Event>(`/api/events/${id}`, {

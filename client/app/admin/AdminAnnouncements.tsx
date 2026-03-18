@@ -100,7 +100,7 @@ export default function AdminAnnouncements({ initial }: { initial: Announcement[
                   content: editing.content,
                   category: editing.category,
                   datePosted: editing.datePosted,
-                  imageFileId: editing.imageFileId ?? "",
+                  imageUrl: editing.imageUrl ?? "",
                 }
               : undefined
           }

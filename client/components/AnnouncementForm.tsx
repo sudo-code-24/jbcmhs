@@ -24,7 +24,7 @@ const schema = z.object({
   content: z.string().min(1, "Content is required"),
   category: z.enum(ANNOUNCEMENT_CATEGORIES),
   datePosted: z.string().optional(),
-  imageFileId: z.string().optional(),
+  imageUrl: z.string().optional(),
 });
 
 export type AnnouncementFormValues = z.infer<typeof schema>;
@@ -47,7 +47,7 @@ function defaults(initialValues?: Partial<AnnouncementFormValues>): Announcement
     content: initialValues?.content ?? "",
     category: initialValues?.category ?? "General",
     datePosted: inputDate,
-    imageFileId: initialValues?.imageFileId ?? "",
+    imageUrl: initialValues?.imageUrl ?? "",
   };
 }
 
@@ -127,12 +127,12 @@ export default function AnnouncementForm({ mode, initialValues, loading, onSubmi
         />
         <FormField
           control={form.control}
-          name="imageFileId"
+          name="imageUrl"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Google Drive image (optional)</FormLabel>
+              <FormLabel>Image URL (optional)</FormLabel>
               <FormControl>
-                <Input placeholder="Drive file ID or share URL" {...field} />
+                <Input placeholder="https://..." {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

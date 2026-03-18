@@ -1,4 +1,3 @@
-import { assertDriveFileExists, extractDriveFileId, toPublicImageUrl } from "../lib/googleDrive";
 import {
   RowRecord,
   deleteCacheByPrefix,
@@ -13,12 +12,11 @@ type Announcement = {
   content: string;
   category: string;
   datePosted: string;
-  imageFileId?: string;
   imageUrl?: string;
 };
 
 const SHEET_NAME = process.env.GOOGLE_SHEET_ANNOUNCEMENTS || "announcements";
-const HEADERS = ["id", "title", "content", "category", "datePosted", "imageFileId"];
+const HEADERS = ["id", "title", "content", "category", "datePosted", "imageUrl"];
 const TABLE_CACHE_PREFIX = `sheet:${SHEET_NAME}`;
 
 function notFound(): never {
@@ -28,15 +26,14 @@ function notFound(): never {
 }
 
 function toAnnouncement(row: RowRecord): Announcement {
-  const imageFileId = extractDriveFileId(row.imageFileId);
+  const imageUrl = (row.imageUrl ?? "").trim() || undefined;
   return {
     id: Number.parseInt(row.id ?? "0", 10),
     title: row.title ?? "",
     content: row.content ?? "",
     category: row.category ?? "",
     datePosted: row.datePosted || new Date().toISOString(),
-    imageFileId: imageFileId || undefined,
-    imageUrl: toPublicImageUrl(imageFileId) || undefined,
+    imageUrl,
   };
 }
 
@@ -75,11 +72,10 @@ export async function create(data: {
   content: string;
   category: string;
   datePosted?: string;
-  imageFileId?: string;
+  imageUrl?: string;
 }): Promise<Announcement> {
   const rows = await readTable(SHEET_NAME, 0);
-  const imageFileId = extractDriveFileId(data.imageFileId);
-  await assertDriveFileExists(imageFileId);
+  const imageUrl = (data.imageUrl ?? "").trim() || "";
 
   const row: RowRecord = {
     id: String(getNextNumericId(rows)),
@@ -87,7 +83,7 @@ export async function create(data: {
     content: data.content,
     category: data.category,
     datePosted: normalizeDatePosted(data.datePosted),
-    imageFileId,
+    imageUrl,
   };
 
   await writeTable(SHEET_NAME, HEADERS, [...rows, row]);
@@ -97,7 +93,7 @@ export async function create(data: {
 
 export async function update(
   id: string | number,
-  data: { title?: string; content?: string; category?: string; datePosted?: string; imageFileId?: string }
+  data: { title?: string; content?: string; category?: string; datePosted?: string; imageUrl?: string }
 ): Promise<Announcement> {
   const rows = await readTable(SHEET_NAME, 0);
   const target = String(id);
@@ -105,9 +101,8 @@ export async function update(
   if (index < 0) notFound();
 
   const existing = rows[index];
-  const nextImageFileId =
-    data.imageFileId !== undefined ? extractDriveFileId(data.imageFileId) : existing.imageFileId ?? "";
-  await assertDriveFileExists(nextImageFileId);
+  const nextImageUrl =
+    data.imageUrl !== undefined ? (data.imageUrl ?? "").trim() : (existing.imageUrl ?? "").trim();
 
   const nextRow: RowRecord = {
     id: existing.id ?? target,
@@ -118,7 +113,7 @@ export async function update(
       data.datePosted !== undefined
         ? normalizeDatePosted(data.datePosted)
         : existing.datePosted ?? new Date().toISOString(),
-    imageFileId: nextImageFileId,
+    imageUrl: nextImageUrl || "",
   };
 
   const nextRows = [...rows];

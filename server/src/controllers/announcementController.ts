@@ -22,12 +22,12 @@ export async function getOne(req: Request, res: Response, next: NextFunction): P
 
 export async function create(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { title, content, category, datePosted, imageFileId } = req.body;
+    const { title, content, category, datePosted, imageUrl } = req.body;
     if (!title || !content || !category) {
       res.status(400).json({ error: "title, content, and category are required" });
       return;
     }
-    const item = await announcementService.create({ title, content, category, datePosted, imageFileId });
+    const item = await announcementService.create({ title, content, category, datePosted, imageUrl });
     res.status(201).json(item);
   } catch (err) {
     next(err);
@@ -36,13 +36,13 @@ export async function create(req: Request, res: Response, next: NextFunction): P
 
 export async function update(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { title, content, category, datePosted, imageFileId } = req.body;
-    const data: { title?: string; content?: string; category?: string; datePosted?: string; imageFileId?: string } = {};
+    const { title, content, category, datePosted, imageUrl } = req.body;
+    const data: { title?: string; content?: string; category?: string; datePosted?: string; imageUrl?: string } = {};
     if (title !== undefined) data.title = title;
     if (content !== undefined) data.content = content;
     if (category !== undefined) data.category = category;
     if (datePosted !== undefined) data.datePosted = datePosted;
-    if (imageFileId !== undefined) data.imageFileId = imageFileId;
+    if (imageUrl !== undefined) data.imageUrl = imageUrl;
     const item = await announcementService.update(req.params.id, data);
     res.json(item);
   } catch (err) {

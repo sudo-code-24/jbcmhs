@@ -34,11 +34,11 @@ You need these values from the key:
 
 ### `announcements` headers
 
-`id,title,content,category,datePosted,imageFileId`
+`id,title,content,category,datePosted,imageUrl`
 
 ### `events` headers
 
-`id,title,description,date,endDate,type,imageFileId,googleEventId`
+`id,title,description,date,endDate,type,imageUrl,googleEventId`
 
 ### `school_info` headers
 
@@ -74,7 +74,7 @@ If this step is skipped, the API cannot read/write sheet data.
 
 ## 5) Prepare Google Drive Images
 
-For any image used in `imageFileId`, `heroImageUrl`, or `schoolImageUrl`:
+For any image used in `imageUrl`, `heroImageUrl`, or `schoolImageUrl`:
 
 1. Upload image to Google Drive.
 2. Open image sharing settings.

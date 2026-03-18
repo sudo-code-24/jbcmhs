@@ -9,7 +9,6 @@ export interface Announcement {
   content: string;
   category: AnnouncementCategory;
   datePosted: string;
-  imageFileId?: string;
   imageUrl?: string;
 }
 
@@ -20,7 +19,6 @@ export interface Event {
   date: string;
   endDate?: string;
   type: EventType;
-  imageFileId?: string;
   imageUrl?: string;
 }
 

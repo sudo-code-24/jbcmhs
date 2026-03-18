@@ -68,7 +68,7 @@ export default function AdminEvents({ initial }: { initial: Event[] }) {
                       date: ev.date,
                       endDate: ev.endDate ?? "",
                       type: ev.type,
-                      imageFileId: ev.imageFileId ?? "",
+                      imageUrl: ev.imageUrl ?? "",
                     }}
                     triggerLabel="Edit"
                     triggerVariant="ghost"
