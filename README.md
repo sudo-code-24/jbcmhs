@@ -43,6 +43,16 @@ Wait until the `server` and `client` containers are running.
 - **Calendar:** Events grouped by month; “Download as PDF” is a placeholder.
 - **Admin:** Simple CRUD for announcements and events (no auth in Phase 1).
 
+## Admin Login Config
+
+Admin routes are protected. Set these variables for the Next.js client:
+
+- `ADMIN_PASSWORD` (required)
+- `ADMIN_SESSION_TOKEN` (recommended)
+
+For local non-Docker runs, add them in `client/.env`.
+For Docker, they are read from `docker-compose.yml` (with development defaults).
+
 ## Project Structure
 
 ```

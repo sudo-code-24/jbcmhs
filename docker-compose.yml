@@ -45,6 +45,8 @@ services:
       NODE_ENV: development
       API_URL: http://server:5000
       NEXT_PUBLIC_API_URL: http://localhost:5005
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      ADMIN_SESSION_TOKEN: ${ADMIN_SESSION_TOKEN:-dev-admin-session-token}
     ports:
       - "3000:3000"
     volumes:
