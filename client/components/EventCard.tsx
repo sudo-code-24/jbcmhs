@@ -37,27 +37,6 @@ function formatDateRange(start: string | Date, end?: string | Date): string {
   return `${startLabel} - ${formatDate(end)}`;
 }
 
-function toGoogleCalendarDayUrl(date: string | Date): string {
-  // Keep original YYYY-MM-DD values when available to avoid timezone shifts.
-  if (typeof date === "string") {
-    const match = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (match) {
-      const [, year, month, day] = match;
-      return `https://calendar.google.com/calendar/r/day/${year}/${month}/${day}`;
-    }
-  }
-
-  const parsed = new Date(date);
-  if (Number.isNaN(parsed.getTime())) {
-    return "https://calendar.google.com/calendar/r";
-  }
-
-  const year = String(parsed.getFullYear());
-  const month = String(parsed.getMonth() + 1).padStart(2, "0");
-  const day = String(parsed.getDate()).padStart(2, "0");
-  return `https://calendar.google.com/calendar/r/day/${year}/${month}/${day}`;
-}
-
 function toGoogleCalendarEmbedDayUrl(date: string | Date, calendarEmbedUrl?: string): string {
   let year = "";
   let month = "";
@@ -106,7 +85,6 @@ export default function EventCard({ event, view = "list", calendarEmbedUrl }: Ev
   const [isViewOpen, setIsViewOpen] = useState(false);
   const style = getTypeStyle(event.type);
   const dateLabel = formatDateRange(event.date, event.endDate);
-  const googleCalendarDayUrl = toGoogleCalendarDayUrl(event.date);
   const googleCalendarEmbedDayUrl = toGoogleCalendarEmbedDayUrl(event.date, calendarEmbedUrl);
 
   if (view === "grid") {
@@ -150,13 +128,6 @@ export default function EventCard({ event, view = "list", calendarEmbedUrl }: Ev
                 loading="lazy"
               />
             </div>
-            <div className="flex justify-end">
-              <Button asChild variant="outline" size="sm">
-                <a href={googleCalendarDayUrl} target="_blank" rel="noopener noreferrer">
-                  Open in Google Calendar
-                </a>
-              </Button>
-            </div>
           </div>
         </Modal>
       </>
@@ -196,13 +167,6 @@ export default function EventCard({ event, view = "list", calendarEmbedUrl }: Ev
               className="h-[560px] w-full"
               loading="lazy"
             />
-          </div>
-          <div className="flex justify-end">
-            <Button asChild variant="outline" size="sm">
-              <a href={googleCalendarDayUrl} target="_blank" rel="noopener noreferrer">
-                Open in Google Calendar
-              </a>
-            </Button>
           </div>
         </div>
       </Modal>

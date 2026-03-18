@@ -17,14 +17,14 @@ export default async function CalendarPage() {
     <div className="container-wide py-8 sm:py-10 md:py-12">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-primary">School Calendar</h1>
-        <Button
+        {/* <Button
           type="button"
           variant="outline"
           disabled
           title="Placeholder – PDF download not implemented"
         >
           Download as PDF
-        </Button>
+        </Button> */}
       </div>
 
       <CalendarEmbedToggle src={GOOGLE_CALENDAR_EMBED_URL} />
