@@ -11,7 +11,36 @@ import { ensureDefaultAdminAccount } from "./services/authService";
 const app = express();
 const PORT = process.env.PORT ?? 5005;
 
-app.use(cors({ origin: true }));
+const defaultOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
+
+const configuredOrigins = (process.env.CORS_ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const allowedOrigins = new Set([...defaultOrigins, ...configuredOrigins]);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      if (allowedOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-session-id"],
+  })
+);
 app.use(express.json());
 
 app.use("/api/announcements", announcementsRouter);

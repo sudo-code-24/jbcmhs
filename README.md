@@ -56,6 +56,7 @@ For Docker, it is read from `docker-compose.yml` (with development defaults).
 Server auth environment variables:
 
 - `GOOGLE_SHEET_USERS` (default: `users`)
+- `CORS_ALLOWED_ORIGINS` (comma-separated origins allowed to call API)
 - `DEFAULT_ADMIN_EMAIL` (default: `admin@jbcmhs.local`)
 - `DEFAULT_ADMIN_PASSWORD` (default: `admin12345`)
 - `DEFAULT_RESET_PASSWORD` (default: `jbcmhs_local`)
