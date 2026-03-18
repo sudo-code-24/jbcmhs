@@ -46,8 +46,8 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
         return;
       }
 
-      router.replace(nextPath);
-      router.refresh();
+      const target = nextPath.startsWith("/") ? nextPath : "/admin";
+      window.location.assign(target);
     } catch {
       setError("Unable to login right now.");
     } finally {
