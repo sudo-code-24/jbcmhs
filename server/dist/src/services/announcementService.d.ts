@@ -4,7 +4,6 @@ type Announcement = {
     content: string;
     category: string;
     datePosted: string;
-    imageFileId?: string;
     imageUrl?: string;
 };
 export declare function getAll(limit: number | null): Promise<Announcement[]>;
@@ -14,14 +13,14 @@ export declare function create(data: {
     content: string;
     category: string;
     datePosted?: string;
-    imageFileId?: string;
+    imageUrl?: string;
 }): Promise<Announcement>;
 export declare function update(id: string | number, data: {
     title?: string;
     content?: string;
     category?: string;
     datePosted?: string;
-    imageFileId?: string;
+    imageUrl?: string;
 }): Promise<Announcement>;
 export declare function remove(id: string | number): Promise<Announcement>;
 export {};

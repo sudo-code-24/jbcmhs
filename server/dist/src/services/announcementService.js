@@ -5,10 +5,9 @@ exports.getById = getById;
 exports.create = create;
 exports.update = update;
 exports.remove = remove;
-const googleDrive_1 = require("../lib/googleDrive");
 const googleSheetsStore_1 = require("../lib/googleSheetsStore");
 const SHEET_NAME = process.env.GOOGLE_SHEET_ANNOUNCEMENTS || "announcements";
-const HEADERS = ["id", "title", "content", "category", "datePosted", "imageFileId"];
+const HEADERS = ["id", "title", "content", "category", "datePosted", "imageUrl"];
 const TABLE_CACHE_PREFIX = `sheet:${SHEET_NAME}`;
 function notFound() {
     const err = new Error("Announcement not found");
@@ -16,15 +15,14 @@ function notFound() {
     throw err;
 }
 function toAnnouncement(row) {
-    const imageFileId = (0, googleDrive_1.extractDriveFileId)(row.imageFileId);
+    const imageUrl = (row.imageUrl ?? "").trim() || undefined;
     return {
         id: Number.parseInt(row.id ?? "0", 10),
         title: row.title ?? "",
         content: row.content ?? "",
         category: row.category ?? "",
         datePosted: row.datePosted || new Date().toISOString(),
-        imageFileId: imageFileId || undefined,
-        imageUrl: (0, googleDrive_1.toPublicImageUrl)(imageFileId) || undefined,
+        imageUrl,
     };
 }
 function sortByDateDesc(rows) {
@@ -58,15 +56,14 @@ async function getById(id) {
 }
 async function create(data) {
     const rows = await (0, googleSheetsStore_1.readTable)(SHEET_NAME, 0);
-    const imageFileId = (0, googleDrive_1.extractDriveFileId)(data.imageFileId);
-    await (0, googleDrive_1.assertDriveFileExists)(imageFileId);
+    const imageUrl = (data.imageUrl ?? "").trim() || "";
     const row = {
         id: String((0, googleSheetsStore_1.getNextNumericId)(rows)),
         title: data.title,
         content: data.content,
         category: data.category,
         datePosted: normalizeDatePosted(data.datePosted),
-        imageFileId,
+        imageUrl,
     };
     await (0, googleSheetsStore_1.writeTable)(SHEET_NAME, HEADERS, [...rows, row]);
     (0, googleSheetsStore_1.deleteCacheByPrefix)(TABLE_CACHE_PREFIX);
@@ -79,8 +76,7 @@ async function update(id, data) {
     if (index < 0)
         notFound();
     const existing = rows[index];
-    const nextImageFileId = data.imageFileId !== undefined ? (0, googleDrive_1.extractDriveFileId)(data.imageFileId) : existing.imageFileId ?? "";
-    await (0, googleDrive_1.assertDriveFileExists)(nextImageFileId);
+    const nextImageUrl = data.imageUrl !== undefined ? (data.imageUrl ?? "").trim() : (existing.imageUrl ?? "").trim();
     const nextRow = {
         id: existing.id ?? target,
         title: data.title ?? existing.title ?? "",
@@ -89,7 +85,7 @@ async function update(id, data) {
         datePosted: data.datePosted !== undefined
             ? normalizeDatePosted(data.datePosted)
             : existing.datePosted ?? new Date().toISOString(),
-        imageFileId: nextImageFileId,
+        imageUrl: nextImageUrl || "",
     };
     const nextRows = [...rows];
     nextRows[index] = nextRow;

@@ -15,7 +15,7 @@ export default function ShowcasePostCard({ post }: { post: ShowcaseBlogPost }) {
   return (
     <Card className="flex h-full flex-col overflow-hidden text-left">
       <div className="h-36 overflow-hidden">
-        <img src={post.imageUrl ?? "/Ceremony.jpg"} alt={post.title} className="h-full w-full object-cover" />
+        <img src={post.imageUrl ?? "/placeholder.jpg"} alt={post.title} className="h-full w-full object-cover" />
       </div>
       <CardContent className="flex-1 p-4">
         <h3 className="line-clamp-2 text-sm font-semibold">{post.title}</h3>

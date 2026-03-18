@@ -5,7 +5,6 @@ type Event = {
     date: string;
     endDate?: string;
     type: string;
-    imageFileId?: string;
     imageUrl?: string;
     googleEventId?: string;
 };
@@ -17,7 +16,7 @@ export declare function create(data: {
     date: string | Date;
     endDate?: string | Date;
     type: string;
-    imageFileId?: string;
+    imageUrl?: string;
 }): Promise<Event>;
 export declare function update(id: string | number, data: {
     title?: string;
@@ -25,7 +24,7 @@ export declare function update(id: string | number, data: {
     date?: string | Date;
     endDate?: string | Date;
     type?: string;
-    imageFileId?: string;
+    imageUrl?: string;
 }): Promise<Event>;
 export declare function remove(id: string | number): Promise<Event>;
 export {};

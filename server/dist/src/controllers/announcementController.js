@@ -60,12 +60,12 @@ async function getOne(req, res, next) {
 }
 async function create(req, res, next) {
     try {
-        const { title, content, category, datePosted, imageFileId } = req.body;
+        const { title, content, category, datePosted, imageUrl } = req.body;
         if (!title || !content || !category) {
             res.status(400).json({ error: "title, content, and category are required" });
             return;
         }
-        const item = await announcementService.create({ title, content, category, datePosted, imageFileId });
+        const item = await announcementService.create({ title, content, category, datePosted, imageUrl });
         res.status(201).json(item);
     }
     catch (err) {
@@ -74,7 +74,7 @@ async function create(req, res, next) {
 }
 async function update(req, res, next) {
     try {
-        const { title, content, category, datePosted, imageFileId } = req.body;
+        const { title, content, category, datePosted, imageUrl } = req.body;
         const data = {};
         if (title !== undefined)
             data.title = title;
@@ -84,8 +84,8 @@ async function update(req, res, next) {
             data.category = category;
         if (datePosted !== undefined)
             data.datePosted = datePosted;
-        if (imageFileId !== undefined)
-            data.imageFileId = imageFileId;
+        if (imageUrl !== undefined)
+            data.imageUrl = imageUrl;
         const item = await announcementService.update(req.params.id, data);
         res.json(item);
     }

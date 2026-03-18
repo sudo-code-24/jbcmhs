@@ -59,7 +59,7 @@ async function getOne(req, res, next) {
 }
 async function create(req, res, next) {
     try {
-        const { title, description, date, endDate, type, imageFileId } = req.body;
+        const { title, description, date, endDate, type, imageUrl } = req.body;
         if (!title || !date || !type) {
             res.status(400).json({ error: "title, date, and type are required" });
             return;
@@ -70,7 +70,7 @@ async function create(req, res, next) {
             date,
             endDate,
             type,
-            imageFileId,
+            imageUrl,
         });
         res.status(201).json(item);
     }
@@ -80,7 +80,7 @@ async function create(req, res, next) {
 }
 async function update(req, res, next) {
     try {
-        const { title, description, date, endDate, type, imageFileId } = req.body;
+        const { title, description, date, endDate, type, imageUrl } = req.body;
         const data = {};
         if (title !== undefined)
             data.title = title;
@@ -92,8 +92,8 @@ async function update(req, res, next) {
             data.endDate = endDate;
         if (type !== undefined)
             data.type = type;
-        if (imageFileId !== undefined)
-            data.imageFileId = imageFileId;
+        if (imageUrl !== undefined)
+            data.imageUrl = imageUrl;
         const item = await eventService.update(req.params.id, data);
         res.json(item);
     }

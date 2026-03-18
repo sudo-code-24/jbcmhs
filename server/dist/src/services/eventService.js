@@ -5,11 +5,10 @@ exports.getById = getById;
 exports.create = create;
 exports.update = update;
 exports.remove = remove;
-const googleDrive_1 = require("../lib/googleDrive");
 const googleCalendar_1 = require("../lib/googleCalendar");
 const googleSheetsStore_1 = require("../lib/googleSheetsStore");
 const SHEET_NAME = process.env.GOOGLE_SHEET_EVENTS || "events";
-const HEADERS = ["id", "title", "description", "date", "endDate", "type", "imageFileId", "googleEventId"];
+const HEADERS = ["id", "title", "description", "date", "endDate", "type", "imageUrl", "googleEventId"];
 const TABLE_CACHE_PREFIX = `sheet:${SHEET_NAME}`;
 function notFound() {
     const err = new Error("Event not found");
@@ -17,8 +16,8 @@ function notFound() {
     throw err;
 }
 function toEvent(row) {
-    const imageFileId = (0, googleDrive_1.extractDriveFileId)(row.imageFileId);
     const dateValue = row.date ? new Date(row.date) : new Date();
+    const imageUrl = (row.imageUrl ?? "").trim() || undefined;
     return {
         id: Number.parseInt(row.id ?? "0", 10),
         title: row.title ?? "",
@@ -26,8 +25,7 @@ function toEvent(row) {
         date: dateValue.toISOString(),
         endDate: row.endDate ? new Date(row.endDate).toISOString() : undefined,
         type: row.type ?? "",
-        imageFileId: imageFileId || undefined,
-        imageUrl: (0, googleDrive_1.toPublicImageUrl)(imageFileId) || undefined,
+        imageUrl,
         googleEventId: row.googleEventId || undefined,
     };
 }
@@ -51,8 +49,7 @@ async function getById(id) {
 }
 async function create(data) {
     const rows = await (0, googleSheetsStore_1.readTable)(SHEET_NAME, 0);
-    const imageFileId = (0, googleDrive_1.extractDriveFileId)(data.imageFileId);
-    await (0, googleDrive_1.assertDriveFileExists)(imageFileId);
+    const imageUrl = (data.imageUrl ?? "").trim() || "";
     const date = new Date(data.date).toISOString();
     const endDate = data.endDate ? new Date(data.endDate).toISOString() : "";
     const googleEventId = await (0, googleCalendar_1.createCalendarEvent)({
@@ -62,7 +59,6 @@ async function create(data) {
         endDate: endDate || undefined,
         type: data.type,
     });
-    console.log("googleEventId", googleEventId);
     const row = {
         id: String((0, googleSheetsStore_1.getNextNumericId)(rows)),
         title: data.title,
@@ -70,7 +66,7 @@ async function create(data) {
         date,
         endDate,
         type: data.type,
-        imageFileId,
+        imageUrl,
         googleEventId: googleEventId ?? "",
     };
     await (0, googleSheetsStore_1.writeTable)(SHEET_NAME, HEADERS, [...rows, row]);
@@ -83,8 +79,7 @@ async function update(id, data) {
     if (index < 0)
         notFound();
     const existing = rows[index];
-    const nextImageFileId = data.imageFileId !== undefined ? (0, googleDrive_1.extractDriveFileId)(data.imageFileId) : existing.imageFileId ?? "";
-    await (0, googleDrive_1.assertDriveFileExists)(nextImageFileId);
+    const nextImageUrl = data.imageUrl !== undefined ? ((data.imageUrl ?? "").trim() || "") : (existing.imageUrl ?? "");
     const nextDate = data.date ? new Date(data.date).toISOString() : existing.date ?? new Date().toISOString();
     const nextEndDate = data.endDate !== undefined
         ? (data.endDate ? new Date(data.endDate).toISOString() : "")
@@ -103,7 +98,7 @@ async function update(id, data) {
         date: nextDate,
         endDate: nextEndDate,
         type: data.type ?? existing.type ?? "",
-        imageFileId: nextImageFileId,
+        imageUrl: nextImageUrl,
         googleEventId: nextGoogleEventId ?? existing.googleEventId ?? "",
     };
     const nextRows = [...rows];
