@@ -29,6 +29,7 @@ You need these values from the key:
    - `announcements`
    - `events`
    - `school_info`
+   - `users`
 3. Set row 1 as headers exactly as shown below.
 
 ### `announcements` headers
@@ -42,6 +43,10 @@ You need these values from the key:
 ### `school_info` headers
 
 `id,name,history,mission,vision,phone,email,address,officeHours,heroImageUrl,schoolImageUrl`
+
+### `users` headers
+
+`username,email,hashedPassword,createdAt`
 
 ### Initial `school_info` row example
 
@@ -91,6 +96,13 @@ GOOGLE_CALENDAR_ID=your_calendar_id@group.calendar.google.com
 GOOGLE_SHEET_ANNOUNCEMENTS=announcements
 GOOGLE_SHEET_EVENTS=events
 GOOGLE_SHEET_SCHOOL_INFO=school_info
+GOOGLE_SHEET_USERS=users
+DEFAULT_ADMIN_EMAIL=admin@jbcmhs.local
+DEFAULT_ADMIN_PASSWORD=admin12345
+DEFAULT_RESET_PASSWORD=jbcmhs_local
+BCRYPT_SALT_ROUNDS=12
+JWT_SECRET=replace_with_strong_secret
+JWT_EXPIRES_IN_SECONDS=3600
 ```
 
 Notes:
@@ -98,6 +110,7 @@ Notes:
 - Keep `\n` escaped as shown.
 - Do not commit real secrets to git.
 - Share your Google Calendar with the service account email as **Make changes to events**.
+- The server auto-creates a default admin user on startup if not found.
 
 ## 7) Start the Server
 
@@ -118,6 +131,17 @@ Quick checks:
 2. `GET /api/announcements` returns array from sheet tab.
 3. `GET /api/events` returns array from sheet tab.
 4. Create/update records via admin UI and confirm sheet updates.
+5. `POST /api/auth/signup` creates a user with a bcrypt hash in `users`.
+6. `POST /api/auth/login` returns `token` + `sessionId` after bcrypt validation.
+7. `POST /api/auth/change-password` updates hashed password after validating current password.
+8. Protected routes require:
+   - `Authorization: Bearer <jwt>`
+   - `x-session-id: <sessionId>`
+
+Security policy:
+- If a user logs in using `DEFAULT_ADMIN_PASSWORD`, login is rejected with `requiresPasswordChange`.
+- User must change password first before getting a successful login.
+- Session revocation on `POST /api/auth/logout` invalidates future requests for that token/session.
 
 ## Troubleshooting
 

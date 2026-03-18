@@ -9,11 +9,20 @@ type ModalProps = {
   onClose: () => void;
   title: string;
   children: ReactNode;
+  size?: "sm" | "md" | "lg" | "xl" | "2xl";
 };
 
 const ANIMATION_MS = 200;
 
-export default function Modal({ open, onClose, title, children }: ModalProps) {
+const SIZE_CLASS: Record<NonNullable<ModalProps["size"]>, string> = {
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-lg",
+  xl: "max-w-xl",
+  "2xl": "max-w-2xl",
+};
+
+export default function Modal({ open, onClose, title, children, size = "2xl" }: ModalProps) {
   const [isRendered, setIsRendered] = useState(open);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -51,24 +60,25 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-opacity duration-200 ${
-        isVisible ? "opacity-100" : "opacity-0"
-      } ${open ? "pointer-events-auto" : "pointer-events-none"}`}
+      className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-opacity duration-200 ${isVisible ? "opacity-100" : "opacity-0"
+        } ${open ? "pointer-events-auto" : "pointer-events-none"}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
     >
       <button
         type="button"
-        className="absolute inset-0 h-full w-full bg-black/50"
+        className="absolute inset-0 h-full w-full bg-black/50 backdrop-blur-[1px]"
         aria-label="Close modal overlay"
         onClick={onClose}
       />
       <div
-        className={`relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border bg-background p-4 shadow-lg transition-all duration-200 sm:p-6 ${
-          isVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-95 opacity-0"
-        }`}
+        className={`relative z-10 max-h-[90vh] w-full ${SIZE_CLASS[size]} overflow-y-auto rounded-lg border bg-background p-4 shadow-lg transition-all duration-200 sm:p-6 ${isVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-95 opacity-0"
+          }`}
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">{title}</h2>
-          <Button type="button" variant="ghost" onClick={onClose}>
+          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
             Close
           </Button>
         </div>

@@ -41,17 +41,27 @@ Wait until the `server` and `client` containers are running.
 - **Homepage:** School name, history, mission/vision, contact info, office hours (from API). Latest 3 announcements and upcoming events.
 - **Announcements:** List and detail pages; data from `/api/announcements`.
 - **Calendar:** Events grouped by month; “Download as PDF” is a placeholder.
-- **Admin:** Simple CRUD for announcements and events (no auth in Phase 1).
+- **Admin:** CRUD for announcements and events, protected by login.
 
 ## Admin Login Config
 
 Admin routes are protected. Set these variables for the Next.js client:
 
-- `ADMIN_PASSWORD` (required)
-- `ADMIN_SESSION_TOKEN` (recommended)
+- `ADMIN_SESSION_TOKEN` (recommended; used for session cookie)
 
-For local non-Docker runs, add them in `client/.env`.
-For Docker, they are read from `docker-compose.yml` (with development defaults).
+Credentials are validated by the backend (`/api/auth/login`) against the `users` Google Sheet.
+For local non-Docker runs, add the token in `client/.env`.
+For Docker, it is read from `docker-compose.yml` (with development defaults).
+
+Server auth environment variables:
+
+- `GOOGLE_SHEET_USERS` (default: `users`)
+- `DEFAULT_ADMIN_EMAIL` (default: `admin@jbcmhs.local`)
+- `DEFAULT_ADMIN_PASSWORD` (default: `admin12345`)
+- `DEFAULT_RESET_PASSWORD` (default: `jbcmhs_local`)
+- `BCRYPT_SALT_ROUNDS` (default: `12`)
+- `JWT_SECRET` (required)
+- `JWT_EXPIRES_IN_SECONDS` (default: `3600`)
 
 ## Project Structure
 
@@ -69,6 +79,15 @@ docker-compose.yml
 - `GET/PUT/DELETE /api/announcements/:id`
 - `GET/POST /api/events` — List / create
 - `GET/PUT/DELETE /api/events/:id`
+- `POST /api/auth/signup` — Create user (email + bcrypt hash)
+- `POST /api/auth/login` — Validate credentials, return JWT + sessionId
+- `POST /api/auth/logout` — Revoke active session
+- `POST /api/auth/change-password` — Update password
+- `GET /api/auth/users` — Protected list users (requires JWT + sessionId)
+- `DELETE /api/auth/users/:username` — Protected delete user
+- `POST /api/auth/users/:username/reset-password` — Protected reset password
+
+If a user signs in with the configured default admin password, login is blocked until password is changed.
 
 ## Run without Docker
 

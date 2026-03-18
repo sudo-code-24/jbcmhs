@@ -1,6 +1,7 @@
 import { getAnnouncements, getEvents } from "@/lib/api";
 import AdminAnnouncements from "./AdminAnnouncements";
 import AdminEvents from "./AdminEvents";
+import AdminUsers from "./AdminUsers";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -42,12 +43,16 @@ export default async function AdminPage() {
         <TabsList>
           <TabsTrigger value="announcements">Announcements</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
         </TabsList>
         <TabsContent value="announcements">
           <AdminAnnouncements initial={announcements} />
         </TabsContent>
         <TabsContent value="events">
           <AdminEvents initial={events} />
+        </TabsContent>
+        <TabsContent value="users">
+          <AdminUsers />
         </TabsContent>
       </Tabs>
     </div>

@@ -1,20 +1,13 @@
 export const ADMIN_AUTH_COOKIE = "hs_admin_session";
-
-function getAdminPassword(): string {
-  return process.env.ADMIN_PASSWORD || "";
-}
+export const AUTH_TOKEN_COOKIE = "hs_auth_token";
+export const AUTH_SESSION_COOKIE = "hs_auth_session_id";
 
 function getAdminSessionToken(): string {
-  return process.env.ADMIN_SESSION_TOKEN || getAdminPassword();
+  return process.env.ADMIN_SESSION_TOKEN || "dev-admin-session-token";
 }
 
 export function isAdminConfigValid(): boolean {
-  return Boolean(getAdminPassword() && getAdminSessionToken());
-}
-
-export function validateAdminPassword(password: string): boolean {
-  const expected = getAdminPassword();
-  return Boolean(expected && password === expected);
+  return Boolean(getAdminSessionToken());
 }
 
 export function isValidAdminSessionCookie(cookieValue: string | undefined): boolean {

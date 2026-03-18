@@ -9,8 +9,14 @@ type LoginFormProps = {
   nextPath: string;
 };
 
+type LoginApiError = {
+  error?: string;
+  requiresPasswordChange?: boolean;
+};
+
 export default function LoginForm({ nextPath }: LoginFormProps) {
   const router = useRouter();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -24,11 +30,17 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email, password }),
       });
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        const data = (await res.json().catch(() => null)) as LoginApiError | null;
+        if (data?.requiresPasswordChange) {
+          router.replace(
+            `/change-password?email=${encodeURIComponent(email)}&next=${encodeURIComponent(nextPath)}`
+          );
+          return;
+        }
         setError(data?.error || "Login failed");
         return;
       }
@@ -49,6 +61,20 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
       </CardHeader>
       <CardContent>
         <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="text-sm font-medium">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              required
+            />
+          </div>
           <div className="space-y-1.5">
             <label htmlFor="password" className="text-sm font-medium">
               Password
