@@ -25,29 +25,44 @@ function clearAuthCookies(response: NextResponse) {
   });
 }
 
-async function handleLogout(request: NextRequest) {
-  const token = request.cookies.get(AUTH_TOKEN_COOKIE)?.value || "";
-  const sessionId = request.cookies.get(AUTH_SESSION_COOKIE)?.value || "";
+async function handleLogout(request: NextRequest): Promise<NextResponse> {
+  try {
+    const token = request.cookies.get(AUTH_TOKEN_COOKIE)?.value || "";
+    const sessionId = request.cookies.get(AUTH_SESSION_COOKIE)?.value || "";
 
-  if (token && sessionId) {
-    try {
-      await fetch(`${API_URL}/api/auth/logout`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "x-session-id": sessionId,
-        },
-        cache: "no-store",
-      });
-    } catch {
-      // Always clear client cookies even if server logout fails.
+    if (token && sessionId) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        await fetch(`${API_URL}/api/auth/logout`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "x-session-id": sessionId,
+          },
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+      } catch {
+        // Always clear client cookies even if backend logout fails or times out.
+      }
     }
-  }
 
-  const loginUrl = new URL("/login", request.url);
-  const response = NextResponse.redirect(loginUrl);
-  clearAuthCookies(response);
-  return response;
+    const baseUrl = request.nextUrl?.origin || request.url;
+    const loginUrl = new URL("/login", baseUrl);
+    const response = NextResponse.redirect(loginUrl);
+    clearAuthCookies(response);
+    return response;
+  } catch {
+    // Fallback: redirect to login even if something unexpected fails (e.g. serverless edge cases)
+    const fallbackUrl = process.env.NEXT_PUBLIC_VERCEL_URL
+      ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/login`
+      : process.env.URL || "https://main--jbcmhs.netlify.app/login";
+    const response = NextResponse.redirect(fallbackUrl);
+    clearAuthCookies(response);
+    return response;
+  }
 }
 
 export async function POST(request: NextRequest) {
