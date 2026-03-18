@@ -4,6 +4,11 @@ import { ADMIN_AUTH_COOKIE, AUTH_SESSION_COOKIE, AUTH_TOKEN_COOKIE } from "@/lib
 
 const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
 
+const SITE_URL =
+  process.env.SITE_URL ||
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  "https://jbcmhs.netlify.app";
+
 function clearAuthCookies(response: NextResponse) {
   response.cookies.set({
     name: ADMIN_AUTH_COOKIE,
@@ -50,15 +55,14 @@ async function handleLogout(request: NextRequest): Promise<NextResponse> {
     }
 
     const baseUrl = request.nextUrl?.origin || request.url;
-    const loginUrl = new URL("/login", baseUrl);
-    const response = NextResponse.redirect(loginUrl);
+    const response = NextResponse.redirect(baseUrl);
     clearAuthCookies(response);
     return response;
   } catch {
     // Fallback: redirect to login even if something unexpected fails (e.g. serverless edge cases)
     const fallbackUrl = process.env.NEXT_PUBLIC_VERCEL_URL
-      ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/login`
-      : process.env.URL || "https://main--jbcmhs.netlify.app/login";
+      ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/`
+      : process.env.URL || "https://jbcmhs.netlify.app/";
     const response = NextResponse.redirect(fallbackUrl);
     clearAuthCookies(response);
     return response;
