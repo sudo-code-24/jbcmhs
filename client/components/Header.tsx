@@ -54,7 +54,7 @@ export default function Header() {
           <div className="flex items-center gap-3">
             <Link href="/" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary">
               <img
-                src="/logo.jpg"
+                src="/jbcmhs_logo.png"
                 alt="School Logo"
                 className="h-8 w-8 rounded-full object-contain"
                 style={{ display: "block" }}

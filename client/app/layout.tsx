@@ -16,6 +16,11 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Jose B. Cardenas Mem HS",
   description: "School information, announcements, and calendar",
+  icons: {
+    icon: "/jbcmhs_logo.png",
+    shortcut: "/jbcmhs_logo.png",
+    apple: "/jbcmhs_logo.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
