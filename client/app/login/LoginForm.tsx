@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 type LoginFormProps = {
   nextPath: string;
@@ -91,7 +92,14 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
           </div>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? (
+              <span className="inline-flex items-center gap-2">
+                <LoadingSpinner />
+                Signing in...
+              </span>
+            ) : (
+              "Sign in"
+            )}
           </Button>
         </form>
       </CardContent>

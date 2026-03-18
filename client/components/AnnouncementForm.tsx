@@ -7,6 +7,7 @@ import { z } from "zod";
 import { ANNOUNCEMENT_CATEGORIES } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { CardFooter } from "@/components/ui/card";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import {
   Form,
   FormControl,
@@ -141,7 +142,14 @@ export default function AnnouncementForm({ mode, initialValues, loading, onSubmi
         <CardFooter className="px-0 pb-0">
           <div className="flex w-full justify-end gap-2">
             <Button type="submit" disabled={loading}>
-              {mode === "update" ? "Update" : "Add"} Announcement
+              {loading ? (
+                <span className="inline-flex items-center gap-2">
+                  <LoadingSpinner />
+                  {mode === "update" ? "Updating..." : "Adding..."}
+                </span>
+              ) : (
+                `${mode === "update" ? "Update" : "Add"} Announcement`
+              )}
             </Button>
             {mode === "update" && onCancel ? (
               <Button type="button" variant="outline" onClick={onCancel}>

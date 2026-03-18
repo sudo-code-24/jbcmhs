@@ -11,6 +11,7 @@ import { EVENT_TYPES, type Event } from "@/lib/types";
 import Modal from "@/components/ui/modal";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { CardFooter } from "@/components/ui/card";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import {
   Form,
   FormControl,
@@ -220,7 +221,14 @@ export default function CreateEventForm({
           <CardFooter className="px-0 pb-0">
             <div className="flex w-full justify-end gap-2">
               <Button type="submit" disabled={loading}>
-                {mode === "update" ? "Update Event" : "Add Event"}
+                {loading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <LoadingSpinner />
+                    {mode === "update" ? "Updating..." : "Adding..."}
+                  </span>
+                ) : (
+                  mode === "update" ? "Update Event" : "Add Event"
+                )}
               </Button>
               {mode === "update" && onCancel ? (
                 <Button type="button" variant="outline" onClick={onCancel}>

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RouteTransition from "@/components/RouteTransition";
+import RouteLoadingBar from "@/components/RouteLoadingBar";
 import { ThemeProvider } from "@/components/theme-provider";
 
 const outfit = Outfit({
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={outfit.variable} suppressHydrationWarning>
       <body className="min-h-screen font-sans">
         <ThemeProvider>
+          <RouteLoadingBar />
           <Header />
           <main className="min-h-screen pb-24 md:pb-0">
             <RouteTransition>{children}</RouteTransition>

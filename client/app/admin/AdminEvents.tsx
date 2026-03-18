@@ -7,15 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import CreateEventForm from "@/components/CreateEventForm";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 export default function AdminEvents({ initial }: { initial: Event[] }) {
   const [list, setList] = useState<Event[]>(initial);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this event?")) return;
     setLoading(true);
+    setDeletingId(id);
     setError("");
     try {
       await deleteEvent(id);
@@ -24,6 +27,7 @@ export default function AdminEvents({ initial }: { initial: Event[] }) {
       setError(err instanceof Error ? err.message : "Delete failed");
     } finally {
       setLoading(false);
+      setDeletingId(null);
     }
   };
 
@@ -77,10 +81,18 @@ export default function AdminEvents({ initial }: { initial: Event[] }) {
                     type="button"
                     variant="ghost"
                     size="sm"
+                    disabled={loading}
                     className="text-destructive hover:text-destructive"
                     onClick={() => handleDelete(ev.id)}
                   >
-                    Delete
+                    {deletingId === ev.id ? (
+                      <span className="inline-flex items-center gap-2">
+                        <LoadingSpinner />
+                        Deleting...
+                      </span>
+                    ) : (
+                      "Delete"
+                    )}
                   </Button>
                 </div>
               </CardContent>

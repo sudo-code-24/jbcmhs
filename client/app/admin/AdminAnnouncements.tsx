@@ -13,6 +13,7 @@ import AnnouncementForm, { type AnnouncementFormValues } from "@/components/Anno
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 export default function AdminAnnouncements({ initial }: { initial: Announcement[] }) {
   const [list, setList] = useState<Announcement[]>(initial);
@@ -20,6 +21,7 @@ export default function AdminAnnouncements({ initial }: { initial: Announcement[
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const resetForm = () => {
     setEditing(null);
@@ -53,6 +55,7 @@ export default function AdminAnnouncements({ initial }: { initial: Announcement[
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this announcement?")) return;
     setLoading(true);
+    setDeletingId(id);
     setError("");
     try {
       await deleteAnnouncement(id);
@@ -62,6 +65,7 @@ export default function AdminAnnouncements({ initial }: { initial: Announcement[
       setError(err instanceof Error ? err.message : "Delete failed");
     } finally {
       setLoading(false);
+      setDeletingId(null);
     }
   };
 
@@ -128,10 +132,18 @@ export default function AdminAnnouncements({ initial }: { initial: Announcement[
                     type="button"
                     variant="ghost"
                     size="sm"
+                    disabled={loading}
                     className="text-destructive hover:text-destructive"
                     onClick={() => handleDelete(a.id)}
                   >
-                    Delete
+                    {deletingId === a.id ? (
+                      <span className="inline-flex items-center gap-2">
+                        <LoadingSpinner />
+                        Deleting...
+                      </span>
+                    ) : (
+                      "Delete"
+                    )}
                   </Button>
                 </div>
               </CardContent>

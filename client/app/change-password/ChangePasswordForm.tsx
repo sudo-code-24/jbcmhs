@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 type ChangePasswordFormProps = {
   email: string;
@@ -108,7 +109,14 @@ export default function ChangePasswordForm({ email, nextPath }: ChangePasswordFo
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           {success ? <p className="text-sm text-emerald-600 dark:text-emerald-400">{success}</p> : null}
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Updating..." : "Update password"}
+            {loading ? (
+              <span className="inline-flex items-center gap-2">
+                <LoadingSpinner />
+                Updating...
+              </span>
+            ) : (
+              "Update password"
+            )}
           </Button>
         </form>
       </CardContent>

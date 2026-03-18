@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import Modal from "@/components/ui/modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -19,6 +20,8 @@ export default function AdminUsers() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [deletingUsername, setDeletingUsername] = useState<string | null>(null);
+  const [resettingUsername, setResettingUsername] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -85,6 +88,7 @@ export default function AdminUsers() {
     if (!confirm(`Delete user "${targetUsername}"?`)) return;
     setError("");
     setSuccess("");
+    setDeletingUsername(targetUsername);
     try {
       const response = await fetch(`/api/auth/users/${encodeURIComponent(targetUsername)}`, {
         method: "DELETE",
@@ -98,6 +102,8 @@ export default function AdminUsers() {
       await loadUsers();
     } catch {
       setError("Unable to delete user right now.");
+    } finally {
+      setDeletingUsername(null);
     }
   }
 
@@ -105,6 +111,7 @@ export default function AdminUsers() {
     if (!confirm(`Reset password for "${targetUsername}" to default (jbcmhs_local)?`)) return;
     setError("");
     setSuccess("");
+    setResettingUsername(targetUsername);
     try {
       const response = await fetch(`/api/auth/users/${encodeURIComponent(targetUsername)}/reset-password`, {
         method: "POST",
@@ -117,6 +124,8 @@ export default function AdminUsers() {
       setSuccess(`Password reset for: ${targetUsername}`);
     } catch {
       setError("Unable to reset password right now.");
+    } finally {
+      setResettingUsername(null);
     }
   }
 
@@ -149,7 +158,10 @@ export default function AdminUsers() {
               {isLoadingUsers ? (
                 <tr>
                   <td colSpan={4} className="px-3 py-3 text-muted-foreground">
-                    Loading users...
+                    <span className="inline-flex items-center gap-2">
+                      <LoadingSpinner />
+                      Loading users...
+                    </span>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
@@ -170,19 +182,34 @@ export default function AdminUsers() {
                           type="button"
                           variant="outline"
                           size="sm"
+                          disabled={Boolean(deletingUsername || resettingUsername)}
                           onClick={() => handleResetPassword(user.username)}
                         >
-                          Reset Password
+                          {resettingUsername === user.username ? (
+                            <span className="inline-flex items-center gap-2">
+                              <LoadingSpinner />
+                              Resetting...
+                            </span>
+                          ) : (
+                            "Reset Password"
+                          )}
                         </Button>
                         <Button
                           type="button"
                           variant="outline"
-                          disabled={user.username === 'admin'}
+                          disabled={user.username === "admin" || Boolean(deletingUsername || resettingUsername)}
                           size="sm"
                           className="text-destructive hover:text-destructive"
                           onClick={() => handleDeleteUser(user.username)}
                         >
-                          Delete User
+                          {deletingUsername === user.username ? (
+                            <span className="inline-flex items-center gap-2">
+                              <LoadingSpinner />
+                              Deleting...
+                            </span>
+                          ) : (
+                            "Delete User"
+                          )}
                         </Button>
                       </div>
                     </td>
@@ -230,7 +257,14 @@ export default function AdminUsers() {
           </div>
           <div className="flex w-full justify-end gap-2">
             <Button type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Create User"}
+              {loading ? (
+                <span className="inline-flex items-center gap-2">
+                  <LoadingSpinner />
+                  Creating...
+                </span>
+              ) : (
+                "Create User"
+              )}
             </Button>
           </div>
 

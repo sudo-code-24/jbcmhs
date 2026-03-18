@@ -65,6 +65,26 @@
   }
 }
 
+@keyframes routeLoadingSlide {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+.route-loading-bar {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--primary) / 0),
+    hsl(var(--primary)),
+    hsl(var(--primary) / 0)
+  );
+  animation: routeLoadingSlide 950ms ease-in-out infinite;
+  will-change: transform;
+}
+
 @layer base {
   * {
     @apply border-border;
