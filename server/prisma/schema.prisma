@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Announcement {
+  id         Int      @id @default(autoincrement())
+  title      String
+  content    String
+  category   String
+  datePosted DateTime @default(now())
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  date        DateTime
+  type        String
+}
+
+model SchoolInfo {
+  id          Int    @id @default(1)
+  name        String
+  history     String
+  mission     String
+  vision      String
+  phone       String
+  email       String
+  address     String
+  officeHours String
+}

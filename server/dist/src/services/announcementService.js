@@ -1,0 +1,111 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getAll = getAll;
+exports.getById = getById;
+exports.create = create;
+exports.update = update;
+exports.remove = remove;
+const googleDrive_1 = require("../lib/googleDrive");
+const googleSheetsStore_1 = require("../lib/googleSheetsStore");
+const SHEET_NAME = process.env.GOOGLE_SHEET_ANNOUNCEMENTS || "announcements";
+const HEADERS = ["id", "title", "content", "category", "datePosted", "imageFileId"];
+const TABLE_CACHE_PREFIX = `sheet:${SHEET_NAME}`;
+function notFound() {
+    const err = new Error("Announcement not found");
+    err.status = 404;
+    throw err;
+}
+function toAnnouncement(row) {
+    const imageFileId = (0, googleDrive_1.extractDriveFileId)(row.imageFileId);
+    return {
+        id: Number.parseInt(row.id ?? "0", 10),
+        title: row.title ?? "",
+        content: row.content ?? "",
+        category: row.category ?? "",
+        datePosted: row.datePosted || new Date().toISOString(),
+        imageFileId: imageFileId || undefined,
+        imageUrl: (0, googleDrive_1.toPublicImageUrl)(imageFileId) || undefined,
+    };
+}
+function sortByDateDesc(rows) {
+    return [...rows].sort((a, b) => {
+        const left = new Date(a.datePosted ?? "").getTime();
+        const right = new Date(b.datePosted ?? "").getTime();
+        return right - left;
+    });
+}
+function normalizeDatePosted(value) {
+    if (!value)
+        return new Date().toISOString();
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime()))
+        return new Date().toISOString();
+    return parsed.toISOString();
+}
+async function getAll(limit) {
+    const rows = await (0, googleSheetsStore_1.readTable)(SHEET_NAME, 60000);
+    const sorted = sortByDateDesc(rows);
+    const mapped = sorted.map(toAnnouncement);
+    return limit ? mapped.slice(0, limit) : mapped;
+}
+async function getById(id) {
+    const rows = await (0, googleSheetsStore_1.readTable)(SHEET_NAME, 60000);
+    const target = String(id);
+    const row = rows.find((item) => item.id === target);
+    if (!row)
+        notFound();
+    return toAnnouncement(row);
+}
+async function create(data) {
+    const rows = await (0, googleSheetsStore_1.readTable)(SHEET_NAME, 0);
+    const imageFileId = (0, googleDrive_1.extractDriveFileId)(data.imageFileId);
+    await (0, googleDrive_1.assertDriveFileExists)(imageFileId);
+    const row = {
+        id: String((0, googleSheetsStore_1.getNextNumericId)(rows)),
+        title: data.title,
+        content: data.content,
+        category: data.category,
+        datePosted: normalizeDatePosted(data.datePosted),
+        imageFileId,
+    };
+    await (0, googleSheetsStore_1.writeTable)(SHEET_NAME, HEADERS, [...rows, row]);
+    (0, googleSheetsStore_1.deleteCacheByPrefix)(TABLE_CACHE_PREFIX);
+    return toAnnouncement(row);
+}
+async function update(id, data) {
+    const rows = await (0, googleSheetsStore_1.readTable)(SHEET_NAME, 0);
+    const target = String(id);
+    const index = rows.findIndex((item) => item.id === target);
+    if (index < 0)
+        notFound();
+    const existing = rows[index];
+    const nextImageFileId = data.imageFileId !== undefined ? (0, googleDrive_1.extractDriveFileId)(data.imageFileId) : existing.imageFileId ?? "";
+    await (0, googleDrive_1.assertDriveFileExists)(nextImageFileId);
+    const nextRow = {
+        id: existing.id ?? target,
+        title: data.title ?? existing.title ?? "",
+        content: data.content ?? existing.content ?? "",
+        category: data.category ?? existing.category ?? "",
+        datePosted: data.datePosted !== undefined
+            ? normalizeDatePosted(data.datePosted)
+            : existing.datePosted ?? new Date().toISOString(),
+        imageFileId: nextImageFileId,
+    };
+    const nextRows = [...rows];
+    nextRows[index] = nextRow;
+    await (0, googleSheetsStore_1.writeTable)(SHEET_NAME, HEADERS, nextRows);
+    (0, googleSheetsStore_1.deleteCacheByPrefix)(TABLE_CACHE_PREFIX);
+    return toAnnouncement(nextRow);
+}
+async function remove(id) {
+    const rows = await (0, googleSheetsStore_1.readTable)(SHEET_NAME, 0);
+    const target = String(id);
+    const index = rows.findIndex((item) => item.id === target);
+    if (index < 0)
+        notFound();
+    const [deleted] = rows.splice(index, 1);
+    await (0, googleSheetsStore_1.writeTable)(SHEET_NAME, HEADERS, rows);
+    (0, googleSheetsStore_1.deleteCacheByPrefix)(TABLE_CACHE_PREFIX);
+    return toAnnouncement(deleted);
+}
+//# sourceMappingURL=announcementService.js.map
