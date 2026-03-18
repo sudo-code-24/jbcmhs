@@ -13,6 +13,7 @@ type ViewMode = "list" | "grid";
 
 type EventsDashboardProps = {
   events: Event[];
+  calendarEmbedUrl?: string;
 };
 
 const MONTH_OPTIONS = [
@@ -34,7 +35,7 @@ function toLabel(type: EventType): string {
   return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
-export default function EventsDashboard({ events }: EventsDashboardProps) {
+export default function EventsDashboard({ events, calendarEmbedUrl }: EventsDashboardProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [query, setQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -167,7 +168,7 @@ export default function EventsDashboard({ events }: EventsDashboardProps) {
       {filtered.length > 0 ? (
         <div className={viewMode === "grid" ? "grid grid-cols-1 gap-4 md:grid-cols-2" : "space-y-2.5"}>
           {filtered.map((event) => (
-            <EventCard key={event.id} event={event} view={viewMode} />
+            <EventCard key={event.id} event={event} view={viewMode} calendarEmbedUrl={calendarEmbedUrl} />
           ))}
         </div>
       ) : (

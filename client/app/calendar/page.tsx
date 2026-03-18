@@ -29,7 +29,7 @@ export default async function CalendarPage() {
 
       <CalendarEmbedToggle src={GOOGLE_CALENDAR_EMBED_URL} />
       <div className="mt-6">
-        <EventsDashboard events={events} />
+        <EventsDashboard events={events} calendarEmbedUrl={GOOGLE_CALENDAR_EMBED_URL} />
       </div>
     </div>
   );

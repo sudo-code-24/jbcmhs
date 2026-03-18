@@ -8,9 +8,23 @@ type CalendarEmbedToggleProps = {
   src: string;
 };
 
+function toScheduleEmbedUrl(src: string): string {
+  const trimmed = src?.trim();
+  if (!trimmed) return "";
+
+  try {
+    const url = new URL(trimmed);
+    url.searchParams.set("mode", "AGENDA");
+    return url.toString();
+  } catch {
+    return trimmed;
+  }
+}
+
 export default function CalendarEmbedToggle({ src }: CalendarEmbedToggleProps) {
   const [showCalendar, setShowCalendar] = useState(false);
-  const hasCalendarUrl = Boolean(src?.trim());
+  const scheduleEmbedUrl = toScheduleEmbedUrl(src);
+  const hasCalendarUrl = Boolean(scheduleEmbedUrl);
 
   return (
     <div className="mt-6">
@@ -30,7 +44,7 @@ export default function CalendarEmbedToggle({ src }: CalendarEmbedToggleProps) {
       {showCalendar && hasCalendarUrl ? (
         <div className="mt-6 overflow-hidden rounded-lg border bg-card p-2">
           <iframe
-            src={src}
+            src={scheduleEmbedUrl}
             style={{ border: 0 }}
             width="100%"
             height="700"
