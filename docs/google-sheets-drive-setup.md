@@ -103,6 +103,8 @@ DEFAULT_RESET_PASSWORD=jbcmhs_local
 BCRYPT_SALT_ROUNDS=12
 JWT_SECRET=replace_with_strong_secret
 JWT_EXPIRES_IN_SECONDS=3600
+UPSTASH_REDIS_REST_URL=https://your-upstash-instance.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_upstash_rest_token
 ```
 
 Notes:
@@ -142,6 +144,7 @@ Security policy:
 - If a user logs in using `DEFAULT_ADMIN_PASSWORD`, login is rejected with `requiresPasswordChange`.
 - User must change password first before getting a successful login.
 - Session revocation on `POST /api/auth/logout` invalidates future requests for that token/session.
+- For production, use Upstash Redis session storage (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`).
 
 ## Troubleshooting
 

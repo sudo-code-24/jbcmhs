@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { getRedisClient } from "../lib/redis";
 
 export type SessionRecord = {
   sessionId: string;
@@ -9,6 +10,7 @@ export type SessionRecord = {
 };
 
 const sessions = new Map<string, SessionRecord>();
+const redis = getRedisClient();
 
 function now(): number {
   return Date.now();
@@ -18,11 +20,19 @@ function generateSessionId(): string {
   return crypto.randomBytes(24).toString("hex");
 }
 
-export function createSession(input: {
+function getSessionKey(sessionId: string): string {
+  return `session:${sessionId}`;
+}
+
+function getSecondsUntil(expiryMs: number): number {
+  return Math.max(1, Math.floor((expiryMs - now()) / 1000));
+}
+
+export async function createSession(input: {
   userEmail: string;
   jwtToken: string;
   expiresAt: number;
-}): SessionRecord {
+}): Promise<SessionRecord> {
   const sessionId = generateSessionId();
   const record: SessionRecord = {
     sessionId,
@@ -31,17 +41,38 @@ export function createSession(input: {
     expiresAt: input.expiresAt,
     isRevoked: false,
   };
-  sessions.set(sessionId, record);
+  if (redis) {
+    await redis.set(getSessionKey(sessionId), record, {
+      ex: getSecondsUntil(record.expiresAt),
+    });
+  } else {
+    sessions.set(sessionId, record);
+  }
   return record;
 }
 
-export function getSession(sessionId: string): SessionRecord | null {
+export async function getSession(sessionId: string): Promise<SessionRecord | null> {
+  if (redis) {
+    const existing = await redis.get<SessionRecord>(getSessionKey(sessionId));
+    if (!existing) return null;
+    return existing;
+  }
   const existing = sessions.get(sessionId);
   if (!existing) return null;
   return existing;
 }
 
-export function revokeSession(sessionId: string): void {
+export async function revokeSession(sessionId: string): Promise<void> {
+  if (redis) {
+    const existing = await redis.get<SessionRecord>(getSessionKey(sessionId));
+    if (!existing) return;
+    const updated: SessionRecord = { ...existing, isRevoked: true };
+    await redis.set(getSessionKey(sessionId), updated, {
+      ex: getSecondsUntil(updated.expiresAt),
+    });
+    return;
+  }
+
   const existing = sessions.get(sessionId);
   if (!existing) return;
   existing.isRevoked = true;
@@ -56,6 +87,7 @@ export function isSessionValid(session: SessionRecord | null): boolean {
 }
 
 export function cleanupExpiredSessions(): void {
+  if (redis) return;
   const current = now();
   for (const [id, session] of sessions.entries()) {
     if (session.expiresAt <= current || session.isRevoked) {

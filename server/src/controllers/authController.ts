@@ -57,7 +57,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
     const token = signAuthToken(result.userEmail);
     const expiresIn = getJwtExpiresInSeconds();
     const expiresAt = Date.now() + expiresIn * 1000;
-    const session = createSession({
+    const session = await createSession({
       userEmail: result.userEmail,
       jwtToken: token,
       expiresAt,
@@ -131,7 +131,7 @@ export async function logout(req: Request, res: Response, next: NextFunction): P
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    revokeSession(authReq.user.sessionId);
+    await revokeSession(authReq.user.sessionId);
     res.json({ success: true });
   } catch (err) {
     next(err);

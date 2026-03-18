@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: hs-server
+    runtime: node
+    rootDir: server
+    plan: free
+    autoDeploy: true
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: GOOGLE_SPREADSHEET_ID
+        sync: false
+      - key: GOOGLE_CLIENT_EMAIL
+        sync: false
+      - key: GOOGLE_PRIVATE_KEY
+        sync: false
+      - key: GOOGLE_CALENDAR_ID
+        sync: false
+      - key: GOOGLE_SHEET_ANNOUNCEMENTS
+        value: announcements
+      - key: GOOGLE_SHEET_EVENTS
+        value: events
+      - key: GOOGLE_SHEET_SCHOOL_INFO
+        value: school_info
+      - key: GOOGLE_SHEET_USERS
+        value: users
+      - key: DEFAULT_ADMIN_EMAIL
+        sync: false
+      - key: DEFAULT_ADMIN_PASSWORD
+        sync: false
+      - key: DEFAULT_RESET_PASSWORD
+        value: jbcmhs_local
+      - key: BCRYPT_SALT_ROUNDS
+        value: "12"
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN_SECONDS
+        value: "3600"
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false

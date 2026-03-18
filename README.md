@@ -62,6 +62,8 @@ Server auth environment variables:
 - `BCRYPT_SALT_ROUNDS` (default: `12`)
 - `JWT_SECRET` (required)
 - `JWT_EXPIRES_IN_SECONDS` (default: `3600`)
+- `UPSTASH_REDIS_REST_URL` (recommended for shared session storage)
+- `UPSTASH_REDIS_REST_TOKEN` (recommended for shared session storage)
 
 ## Project Structure
 
@@ -88,6 +90,7 @@ docker-compose.yml
 - `POST /api/auth/users/:username/reset-password` — Protected reset password
 
 If a user signs in with the configured default admin password, login is blocked until password is changed.
+For production, configure Upstash Redis so session validation works across restarts/instances.
 
 ## Run without Docker
 

@@ -28,7 +28,7 @@ function getSessionId(req: Request): string {
   return fromCookie.trim();
 }
 
-export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
+export async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const token = getBearerToken(req.header("authorization"));
     const sessionId = getSessionId(req);
@@ -38,7 +38,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
     }
 
     const payload = verifyAuthToken(token);
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!isSessionValid(session)) {
       res.status(401).json({ error: "Unauthorized" });
       return;

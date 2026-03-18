@@ -86,7 +86,7 @@ async function login(req, res, next) {
         const token = (0, jwt_1.signAuthToken)(result.userEmail);
         const expiresIn = (0, jwt_1.getJwtExpiresInSeconds)();
         const expiresAt = Date.now() + expiresIn * 1000;
-        const session = (0, sessionService_1.createSession)({
+        const session = await (0, sessionService_1.createSession)({
             userEmail: result.userEmail,
             jwtToken: token,
             expiresAt,
@@ -157,7 +157,7 @@ async function logout(req, res, next) {
             res.status(401).json({ error: "Unauthorized" });
             return;
         }
-        (0, sessionService_1.revokeSession)(authReq.user.sessionId);
+        await (0, sessionService_1.revokeSession)(authReq.user.sessionId);
         res.json({ success: true });
     }
     catch (err) {

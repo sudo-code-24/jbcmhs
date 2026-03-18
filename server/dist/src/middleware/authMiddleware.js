@@ -30,7 +30,7 @@ function getSessionId(req) {
     const fromCookie = getCookieValue(req.headers.cookie, "sessionId");
     return fromCookie.trim();
 }
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
     try {
         const token = getBearerToken(req.header("authorization"));
         const sessionId = getSessionId(req);
@@ -39,7 +39,7 @@ function authMiddleware(req, res, next) {
             return;
         }
         const payload = (0, jwt_1.verifyAuthToken)(token);
-        const session = (0, sessionService_1.getSession)(sessionId);
+        const session = await (0, sessionService_1.getSession)(sessionId);
         if (!(0, sessionService_1.isSessionValid)(session)) {
             res.status(401).json({ error: "Unauthorized" });
             return;
