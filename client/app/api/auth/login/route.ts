@@ -21,7 +21,7 @@ type ServerLoginResponse = {
   expiresAt?: number;
 };
 
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5005";
+const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
 
 export async function POST(request: Request) {
   if (!isAdminConfigValid()) {

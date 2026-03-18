@@ -33,8 +33,8 @@ Wait until the `server` and `client` containers are running.
 ### 2. Access the app
 
 - **Frontend:** http://localhost:3000  
-- **Backend API:** http://localhost:5005  
-- **API health:** http://localhost:5005/api/health  
+- **Backend API:** https://jbcmhs.onrender.com  
+- **API health:** https://jbcmhs.onrender.com/api/health  
 
 ## Phase 1 Features
 
@@ -105,7 +105,7 @@ Complete Google setup first (see docs link above), then ensure `server/.env` and
    ```bash
    cd client && npm install && npm run dev
    ```
-3. Open http://localhost:3000 (API at http://localhost:5005).
+3. Open http://localhost:3000 (API at https://jbcmhs.onrender.com).
 
 ## Development
 

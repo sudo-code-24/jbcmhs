@@ -123,7 +123,7 @@ npm run dev
 ```
 
 Health check:
-- `GET http://localhost:5005/api/health`
+- `GET https://jbcmhs.onrender.com/api/health`
 
 ## 8) Verify Data Flow
 

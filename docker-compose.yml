@@ -48,7 +48,7 @@ services:
     environment:
       NODE_ENV: development
       API_URL: http://server:5000
-      NEXT_PUBLIC_API_URL: http://localhost:5005
+      NEXT_PUBLIC_API_URL: https://jbcmhs.onrender.com
       ADMIN_SESSION_TOKEN: ${ADMIN_SESSION_TOKEN:-dev-admin-session-token}
     ports:
       - "3000:3000"

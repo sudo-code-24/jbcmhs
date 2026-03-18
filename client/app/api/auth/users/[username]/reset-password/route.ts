@@ -7,7 +7,7 @@ import {
   isValidAdminSessionCookie,
 } from "@/lib/adminAuth";
 
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5005";
+const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
 
 function ensureAdminAccess(): NextResponse | null {
   const cookieStore = cookies();

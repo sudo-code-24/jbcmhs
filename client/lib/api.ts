@@ -1,7 +1,7 @@
 import type { Announcement, AnnouncementCategory, Event, EventType, SchoolInfo } from "./types";
 
-// API_URL = internal (e.g. http://server:5000 in Docker); NEXT_PUBLIC_API_URL = browser (e.g. http://localhost:5005)
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5005";
+// API_URL = internal (e.g. http://server:5000 in Docker); NEXT_PUBLIC_API_URL = browser (e.g. https://jbcmhs.onrender.com)
+const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
 
 type FetchOptions = RequestInit & { next?: { revalidate?: number } };
 
