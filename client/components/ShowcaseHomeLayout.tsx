@@ -84,12 +84,13 @@ export default function ShowcaseHomeLayout() {
             </div> */}
           </div>
 
-          <div className="rounded-xl bg-gradient-to-br from-sky-100 to-slate-300 p-1">
-            <div className="flex h-64 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-200 via-sky-200 to-indigo-200 text-sm font-medium text-slate-700 sm:h-80">
+          <div className="overflow-hidden rounded-xl bg-gradient-to-br from-sky-100 to-slate-300 p-1">
+            <div className="relative flex h-64 min-h-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-emerald-200 via-sky-200 to-indigo-200 text-sm font-medium text-slate-700 sm:h-80">
               <img
                 src={schoolInfo.heroImageUrl ?? "/hero_image.jpg"}
                 id="hero-image"
                 alt="Hero image"
+                className="h-full w-full object-cover"
                 onError={(e) => {
                   const target = e.currentTarget;
                   if (target.src !== window.location.origin + "/hero_image.jpg") {
