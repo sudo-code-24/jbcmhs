@@ -11,7 +11,7 @@ type ChangePasswordFormProps = {
   nextPath: string;
 };
 
-export default function ChangePasswordForm({ email, nextPath }: ChangePasswordFormProps) {
+const ChangePasswordForm = ({ email, nextPath }: ChangePasswordFormProps) => {
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -19,7 +19,7 @@ export default function ChangePasswordForm({ email, nextPath }: ChangePasswordFo
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setSuccess("");
@@ -57,7 +57,7 @@ export default function ChangePasswordForm({ email, nextPath }: ChangePasswordFo
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
     <Card className="w-full max-w-md">
@@ -87,7 +87,7 @@ export default function ChangePasswordForm({ email, nextPath }: ChangePasswordFo
               type="password"
               autoComplete="current-password"
               value={currentPassword}
-              onChange={(event) => setCurrentPassword(event.target.value)}
+              onChange={(e) => setCurrentPassword(e.target.value)}
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               required
             />
@@ -101,7 +101,7 @@ export default function ChangePasswordForm({ email, nextPath }: ChangePasswordFo
               type="password"
               autoComplete="new-password"
               value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
+              onChange={(e) => setNewPassword(e.target.value)}
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               required
             />
@@ -122,4 +122,6 @@ export default function ChangePasswordForm({ email, nextPath }: ChangePasswordFo
       </CardContent>
     </Card>
   );
-}
+};
+
+export default ChangePasswordForm;

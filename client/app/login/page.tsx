@@ -1,4 +1,4 @@
-import LoginForm from "./LoginForm";
+import LoginForm from "@/components/auth/LoginForm";
 
 type LoginPageProps = {
   searchParams?: { next?: string };

@@ -9,13 +9,17 @@ import {
 } from "@/lib/api";
 import type { Announcement } from "@/lib/types";
 import Modal from "@/components/ui/modal";
-import AnnouncementForm, { type AnnouncementFormValues } from "@/components/AnnouncementForm";
+import AnnouncementForm, { type AnnouncementFormValues } from "./AnnouncementForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 
-export default function AdminAnnouncements({ initial }: { initial: Announcement[] }) {
+type AdminAnnouncementsProps = {
+  initial: Announcement[];
+};
+
+const AdminAnnouncements = ({ initial }: AdminAnnouncementsProps) => {
   const [list, setList] = useState<Announcement[]>(initial);
   const [editing, setEditing] = useState<Announcement | null>(null);
   const [open, setOpen] = useState(false);
@@ -117,15 +121,12 @@ export default function AdminAnnouncements({ initial }: { initial: Announcement[
               <CardContent className="flex flex-wrap items-center justify-between gap-2 p-3">
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">{a.title}</p>
-                  <Badge className="mt-1 ml-0" variant="secondary">{a.category}</Badge>
+                  <Badge className="mt-1 ml-0" variant="secondary">
+                    {a.category}
+                  </Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => startEdit(a)}
-                  >
+                  <Button type="button" variant="ghost" size="sm" onClick={() => startEdit(a)}>
                     Edit
                   </Button>
                   <Button
@@ -153,4 +154,6 @@ export default function AdminAnnouncements({ initial }: { initial: Announcement[
       </ul>
     </div>
   );
-}
+};
+
+export default AdminAnnouncements;

@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import ContentListCard from "@/components/ContentListCard";
+import ContentListCard from "@/components/shared/ContentListCard";
 import { categoryConfig } from "./categoryConfig";
 import type { AnnouncementCardListProps } from "./types";
 

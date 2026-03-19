@@ -1,5 +1,5 @@
 import { getAnnouncements } from "@/lib/api";
-import AnnouncementsDashboard from "@/components/AnnouncementsDashboard";
+import AnnouncementsDashboard from "@/components/announcement/AnnouncementsDashboard";
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";

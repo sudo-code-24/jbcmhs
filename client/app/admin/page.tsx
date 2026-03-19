@@ -1,7 +1,7 @@
 import { getAnnouncements, getEvents } from "@/lib/api";
-import AdminAnnouncements from "./AdminAnnouncements";
-import AdminEvents from "./AdminEvents";
-import AdminUsers from "./AdminUsers";
+import AdminAnnouncements from "@/components/announcement/AdminAnnouncements";
+import AdminEvents from "@/components/event/AdminEvents";
+import AdminUsers from "@/components/user/AdminUsers";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -27,6 +27,7 @@ export default async function AdminPage() {
   }
 
   let currentUserRole: string | null = null;
+  let currentUsername: string | null = null;
   if (token && sessionId) {
     try {
       const meRes = await fetch(`${API_URL}/api/auth/me`, {
@@ -37,8 +38,13 @@ export default async function AdminPage() {
         },
       });
       if (meRes.ok) {
-        const me = (await meRes.json()) as { role?: string };
+        const me = (await meRes.json()) as {
+          role?: string;
+          username?: string;
+          user?: { username?: string };
+        };
         currentUserRole = me.role ?? null;
+        currentUsername = me.username ?? me.user?.username ?? null;
       }
     } catch {
       // Ignore - user may still access announcements/events
@@ -83,7 +89,7 @@ export default async function AdminPage() {
         </TabsContent>
         {isAdmin ? (
           <TabsContent value="users">
-            <AdminUsers />
+            <AdminUsers currentUsername={currentUsername} />
           </TabsContent>
         ) : null}
       </Tabs>
