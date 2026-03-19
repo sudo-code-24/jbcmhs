@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Grid2x2, List, Search, SlidersHorizontal } from "lucide-react";
 import type { Announcement } from "@/lib/types";
-import AnnouncementCard from "@/components/AnnouncementCard";
+import AnnouncementCard from "@/components/announcement/AnnouncementCard";
 import MultiSelectDropdown, { type MultiSelectOption } from "@/components/MultiSelectDropdown";
 import { Button } from "@/components/ui/button";
 import Modal from "@/components/ui/modal";
