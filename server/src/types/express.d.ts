@@ -1,3 +1,5 @@
+import type { UserRole } from "../lib/jwt";
+
 export {};
 
 declare global {
@@ -6,6 +8,7 @@ declare global {
       user?: {
         email: string;
         sessionId: string;
+        role?: UserRole;
       };
     }
   }

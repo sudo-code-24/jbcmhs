@@ -18,10 +18,11 @@ function ensureSecret() {
 function getJwtExpiresInSeconds() {
     return JWT_EXPIRES_IN_SECONDS;
 }
-function signAuthToken(email) {
+function signAuthToken(email, role) {
     const payload = {
         email,
         issuedAt: Math.floor(Date.now() / 1000),
+        ...(role && { role }),
     };
     return jsonwebtoken_1.default.sign(payload, ensureSecret(), {
         expiresIn: JWT_EXPIRES_IN_SECONDS,
@@ -36,6 +37,7 @@ function verifyAuthToken(token) {
         err.status = 401;
         throw err;
     }
-    return { email, issuedAt };
+    const role = decoded.role === "admin" || decoded.role === "faculty" ? decoded.role : "faculty";
+    return { email, issuedAt, role };
 }
 //# sourceMappingURL=jwt.js.map

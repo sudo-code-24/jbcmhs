@@ -5,7 +5,14 @@ import AdminUsers from "./AdminUsers";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ADMIN_AUTH_COOKIE, isValidAdminSessionCookie } from "@/lib/adminAuth";
+import {
+  ADMIN_AUTH_COOKIE,
+  AUTH_SESSION_COOKIE,
+  AUTH_TOKEN_COOKIE,
+  isValidAdminSessionCookie,
+} from "@/lib/adminAuth";
+
+const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
@@ -13,9 +20,32 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   const cookieStore = cookies();
   const sessionCookie = cookieStore.get(ADMIN_AUTH_COOKIE)?.value;
+  const token = cookieStore.get(AUTH_TOKEN_COOKIE)?.value || "";
+  const sessionId = cookieStore.get(AUTH_SESSION_COOKIE)?.value || "";
   if (!isValidAdminSessionCookie(sessionCookie)) {
     redirect("/login?next=/admin");
   }
+
+  let currentUserRole: string | null = null;
+  if (token && sessionId) {
+    try {
+      const meRes = await fetch(`${API_URL}/api/auth/me`, {
+        cache: "no-store",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "x-session-id": sessionId,
+        },
+      });
+      if (meRes.ok) {
+        const me = (await meRes.json()) as { role?: string };
+        currentUserRole = me.role ?? null;
+      }
+    } catch {
+      // Ignore - user may still access announcements/events
+    }
+  }
+
+  const isAdmin = currentUserRole === "admin";
 
   const [announcements, events] = await Promise.all([
     getAnnouncements().catch(() => []),
@@ -43,7 +73,7 @@ export default async function AdminPage() {
         <TabsList>
           <TabsTrigger value="announcements">Announcements</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
+          {isAdmin ? <TabsTrigger value="users">Users</TabsTrigger> : null}
         </TabsList>
         <TabsContent value="announcements">
           <AdminAnnouncements initial={announcements} />
@@ -51,9 +81,11 @@ export default async function AdminPage() {
         <TabsContent value="events">
           <AdminEvents initial={events} />
         </TabsContent>
-        <TabsContent value="users">
-          <AdminUsers />
-        </TabsContent>
+        {isAdmin ? (
+          <TabsContent value="users">
+            <AdminUsers />
+          </TabsContent>
+        ) : null}
       </Tabs>
     </div>
   );

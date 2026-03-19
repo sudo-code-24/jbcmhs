@@ -11,11 +11,15 @@ type UserRow = {
   username: string;
   email: string;
   createdAt: string;
+  role?: string;
 };
+
+type UserRole = "admin" | "faculty";
 
 export default function AdminUsers() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<UserRole>("faculty");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
@@ -49,6 +53,7 @@ export default function AdminUsers() {
   function resetCreateForm() {
     setUsername("");
     setPassword("");
+    setRole("faculty");
     setIsCreateOpen(false);
   }
 
@@ -62,7 +67,7 @@ export default function AdminUsers() {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, role }),
       });
 
       const data = (await response.json().catch(() => null)) as
@@ -150,6 +155,7 @@ export default function AdminUsers() {
               <tr>
                 <th className="px-3 py-2 font-semibold">Username</th>
                 <th className="px-3 py-2 font-semibold">Email</th>
+                <th className="px-3 py-2 font-semibold">Role</th>
                 <th className="px-3 py-2 font-semibold">Date Added</th>
                 <th className="px-3 py-2 font-semibold">Actions</th>
               </tr>
@@ -157,7 +163,7 @@ export default function AdminUsers() {
             <tbody>
               {isLoadingUsers ? (
                 <tr>
-                  <td colSpan={4} className="px-3 py-3 text-muted-foreground">
+                  <td colSpan={5} className="px-3 py-3 text-muted-foreground">
                     <span className="inline-flex items-center gap-2">
                       <LoadingSpinner />
                       Loading users...
@@ -166,15 +172,16 @@ export default function AdminUsers() {
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-3 py-3 text-muted-foreground">
+                  <td colSpan={5} className="px-3 py-3 text-muted-foreground">
                     No users found.
                   </td>
                 </tr>
               ) : (
-                users.map((user, idx) => (
+                users.map((user) => (
                   <tr key={user.username} className="border-t">
                     <td className="px-3 py-2">{user.username}</td>
                     <td className="px-3 py-2">{user.email}</td>
+                    <td className="px-3 py-2 capitalize">{user.role ?? "faculty"}</td>
                     <td className="px-3 py-2">{new Date(user.createdAt).toLocaleString()}</td>
                     <td className="px-3 py-2">
                       <div className="flex flex-wrap gap-2" >
@@ -239,6 +246,22 @@ export default function AdminUsers() {
               maxLength={32}
               required
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="new-user-role" className="text-sm font-medium">
+              Role
+            </label>
+            <select
+              id="new-user-role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as UserRole)}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              required
+            >
+              <option value="faculty">Faculty</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
 
           <div className="space-y-1.5">

@@ -1,8 +1,11 @@
 import jwt from "jsonwebtoken";
 
+export type UserRole = "admin" | "faculty";
+
 export type AuthJwtPayload = {
   email: string;
   issuedAt: number;
+  role?: UserRole;
 };
 
 type JwtPayloadInternal = AuthJwtPayload & jwt.JwtPayload;
@@ -21,10 +24,11 @@ export function getJwtExpiresInSeconds(): number {
   return JWT_EXPIRES_IN_SECONDS;
 }
 
-export function signAuthToken(email: string): string {
+export function signAuthToken(email: string, role?: UserRole): string {
   const payload: AuthJwtPayload = {
     email,
     issuedAt: Math.floor(Date.now() / 1000),
+    ...(role && { role }),
   };
 
   return jwt.sign(payload, ensureSecret(), {
@@ -41,5 +45,7 @@ export function verifyAuthToken(token: string): AuthJwtPayload {
     err.status = 401;
     throw err;
   }
-  return { email, issuedAt };
+  const role =
+    decoded.role === "admin" || decoded.role === "faculty" ? decoded.role : ("faculty" as UserRole);
+  return { email, issuedAt, role };
 }

@@ -1,8 +1,11 @@
+export type UserRole = "admin" | "faculty";
 export type AuthUser = {
     username: string;
     email: string;
     hashedPassword: string;
     createdAt: string;
+    passwordUpdated: boolean;
+    role: UserRole;
 };
 export type LoginResult = {
     success: true;
@@ -15,14 +18,17 @@ export type PublicAuthUser = {
     username: string;
     email: string;
     createdAt: string;
+    role?: UserRole;
 };
 export declare function getUserByEmail(email: string): Promise<AuthUser | null>;
 export declare function getUserByUsername(username: string): Promise<AuthUser | null>;
 export declare function createUser(user: AuthUser): Promise<AuthUser>;
-export declare function signup(email: string, password: string, usernameInput?: string): Promise<{
+export declare function isValidRole(value: string): value is UserRole;
+export declare function signup(email: string, password: string, usernameInput?: string, roleInput?: UserRole): Promise<{
     username: string;
     email: string;
     createdAt: string;
+    role: UserRole;
 }>;
 export declare function getUserByIdentifier(identifier: string): Promise<AuthUser | null>;
 export declare function login(identifier: string, password: string): Promise<LoginResult>;

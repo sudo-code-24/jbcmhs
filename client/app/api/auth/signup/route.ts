@@ -13,6 +13,7 @@ type SignupRequestBody = {
   username?: string;
   email?: string;
   password?: string;
+  role?: string;
 };
 
 export async function POST(request: Request) {
@@ -34,8 +35,12 @@ export async function POST(request: Request) {
   const username = String(body.username ?? "").trim();
   const email = String(body.email ?? "").trim();
   const password = String(body.password ?? "");
+  const role = String(body.role ?? "faculty").trim().toLowerCase();
   if (!username || !password) {
     return NextResponse.json({ error: "username and password are required" }, { status: 400 });
+  }
+  if (role !== "admin" && role !== "faculty") {
+    return NextResponse.json({ error: "role must be 'admin' or 'faculty'" }, { status: 400 });
   }
 
   const response = await fetch(`${API_URL}/api/auth/signup`, {
@@ -45,7 +50,7 @@ export async function POST(request: Request) {
       Authorization: `Bearer ${token}`,
       "x-session-id": sessionId,
     },
-    body: JSON.stringify({ username, email, password }),
+    body: JSON.stringify({ username, email, password, role }),
     cache: "no-store",
   });
 

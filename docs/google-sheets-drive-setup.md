@@ -46,7 +46,12 @@ You need these values from the key:
 
 ### `users` headers
 
-`username,email,hashedPassword,createdAt`
+`username,email,hashedPassword,createdAt,passwordUpdated,role`
+
+- `passwordUpdated`: `true` if user has changed from default password, else `false`
+- `role`: `admin` or `faculty` only
+
+**Migration (existing sheets):** Add columns `passwordUpdated` and `role` after `createdAt`. For existing users, set `passwordUpdated` to `true` if they have already changed their password, else `false`. Set `role` to `admin` or `faculty` (default `faculty`).
 
 ### Initial `school_info` row example
 
@@ -141,7 +146,7 @@ Quick checks:
    - `x-session-id: <sessionId>`
 
 Security policy:
-- If a user logs in using `DEFAULT_ADMIN_PASSWORD`, login is rejected with `requiresPasswordChange`.
+- Login is rejected with `requiresPasswordChange` when `passwordUpdated` is `false` (user still on default/temp password).
 - User must change password first before getting a successful login.
 - Session revocation on `POST /api/auth/logout` invalidates future requests for that token/session.
 - For production, use Upstash Redis session storage (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`).

@@ -48,10 +48,11 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       return;
     }
 
-    const authReq = req as Request & { user?: { email: string; sessionId: string } };
+    const authReq = req as Request & { user?: { email: string; sessionId: string; role?: import("../lib/jwt").UserRole } };
     authReq.user = {
       email: payload.email,
       sessionId: session.sessionId,
+      role: payload.role,
     };
     next();
   } catch {

@@ -1,11 +1,15 @@
 import bcrypt from "bcryptjs";
 import { RowRecord, readTable, writeTable } from "../lib/googleSheetsStore";
 
+export type UserRole = "admin" | "faculty";
+
 export type AuthUser = {
   username: string;
   email: string;
   hashedPassword: string;
   createdAt: string;
+  passwordUpdated: boolean;
+  role: UserRole;
 };
 
 export type LoginResult =
@@ -16,10 +20,13 @@ export type PublicAuthUser = {
   username: string;
   email: string;
   createdAt: string;
+  role?: UserRole;
 };
 
 const USERS_SHEET = process.env.GOOGLE_SHEET_USERS || "users";
-const USERS_HEADERS = ["username", "email", "hashedPassword", "createdAt"];
+const USERS_HEADERS = ["username", "email", "hashedPassword", "createdAt", "passwordUpdated", "role"];
+
+const VALID_ROLES: UserRole[] = ["admin", "faculty"];
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS || 12);
 
 function badRequest(message: string): never {
@@ -66,16 +73,19 @@ function getDefaultAdminPassword(): string {
   return process.env.DEFAULT_ADMIN_PASSWORD || "admin12345";
 }
 
-function isDefaultPassword(password: string): boolean {
-  return password === getDefaultAdminPassword();
-}
-
 function getResetPassword(): string {
   return process.env.DEFAULT_RESET_PASSWORD || "jbcmhs_local";
 }
 
-function isForcedChangePassword(password: string): boolean {
-  return password === getDefaultAdminPassword() || password === getResetPassword();
+function parsePasswordUpdated(value: unknown): boolean {
+  if (value === true || value === "true" || value === "1" || value === "yes") return true;
+  return false;
+}
+
+function parseRole(value: unknown): UserRole {
+  const s = String(value ?? "").trim().toLowerCase();
+  if (s === "admin" || s === "faculty") return s;
+  return "faculty";
 }
 
 function usernameFromEmail(email: string): string {
@@ -90,11 +100,15 @@ function toAuthUser(row: RowRecord): AuthUser {
   const email = normalizeEmail(rawEmail || `${username}@jbcmhs.local`);
   const hashedPassword = row.hashedPassword ?? row.password ?? "";
   const createdAt = row.createdAt ?? new Date().toISOString();
+  const passwordUpdated = parsePasswordUpdated(row.passwordUpdated ?? row.PasswordUpdated);
+  const role = parseRole(row.role);
   return {
     username,
     email,
     hashedPassword,
     createdAt,
+    passwordUpdated,
+    role,
   };
 }
 
@@ -102,36 +116,45 @@ function isBcryptHash(value: string): boolean {
   return /^\$2[aby]\$\d{2}\$/.test(value);
 }
 
+function toRowRecord(user: AuthUser): RowRecord {
+  return {
+    username: user.username,
+    email: user.email,
+    hashedPassword: user.hashedPassword,
+    createdAt: user.createdAt,
+    passwordUpdated: user.passwordUpdated ? "true" : "false",
+    role: user.role,
+  };
+}
+
 function normalizeUserRows(rows: RowRecord[]): RowRecord[] {
   return rows
     .map((row) => toAuthUser(row))
     .filter((row) => row.email || row.username)
-    .map((row) => ({
-      username: row.username,
-      email: row.email,
-      hashedPassword: row.hashedPassword,
-      createdAt: row.createdAt,
-    }));
+    .map((row) => toRowRecord(row));
 }
 
 async function migrateLegacyPasswords(rows: RowRecord[]): Promise<RowRecord[]> {
   let hasChanges = false;
   const migratedRows: RowRecord[] = [];
 
-  for (const row of normalizeUserRows(rows)) {
-    const rawPassword = row.hashedPassword ?? "";
+  for (const row of rows) {
+    const user = toAuthUser(row);
+    if (!user.email && !user.username) continue;
+
+    const rawPassword = user.hashedPassword ?? "";
     let hashedPassword = rawPassword;
     if (rawPassword && !isBcryptHash(rawPassword)) {
       hashedPassword = await bcrypt.hash(rawPassword, BCRYPT_ROUNDS);
       hasChanges = true;
     }
 
-    migratedRows.push({
-      username: normalizeUsername(row.username ?? usernameFromEmail(row.email ?? "")),
-      email: normalizeEmail(row.email ?? ""),
-      hashedPassword,
-      createdAt: row.createdAt ?? new Date().toISOString(),
-    });
+    migratedRows.push(
+      toRowRecord({
+        ...user,
+        hashedPassword,
+      })
+    );
   }
 
   if (hasChanges) {
@@ -171,25 +194,34 @@ export async function createUser(user: AuthUser): Promise<AuthUser> {
     conflict("Email already exists");
   }
 
-  const nextRow: RowRecord = {
+  const nextRow = toRowRecord({
     username: normalizedUsername,
     email: normalizedEmail,
     hashedPassword: user.hashedPassword,
     createdAt: user.createdAt,
-  };
+    passwordUpdated: user.passwordUpdated,
+    role: user.role,
+  });
 
   await writeTable(USERS_SHEET, USERS_HEADERS, [...rows, nextRow]);
   return toAuthUser(nextRow);
 }
 
+export function isValidRole(value: string): value is UserRole {
+  return VALID_ROLES.includes(value as UserRole);
+}
+
 export async function signup(
   email: string,
   password: string,
-  usernameInput?: string
-): Promise<{ username: string; email: string; createdAt: string }> {
+  usernameInput?: string,
+  roleInput: UserRole = "faculty"
+): Promise<{ username: string; email: string; createdAt: string; role: UserRole }> {
   const normalizedEmail = normalizeEmail(email);
   const normalizedUsername = normalizeUsername(usernameInput ?? usernameFromEmail(normalizedEmail));
   validateInput(normalizedEmail, password, normalizedUsername);
+
+  const role = isValidRole(roleInput) ? roleInput : "faculty";
 
   const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
   const createdAt = new Date().toISOString();
@@ -198,9 +230,16 @@ export async function signup(
     email: normalizedEmail,
     hashedPassword,
     createdAt,
+    passwordUpdated: false,
+    role,
   });
 
-  return { username: created.username, email: created.email, createdAt: created.createdAt };
+  return {
+    username: created.username,
+    email: created.email,
+    createdAt: created.createdAt,
+    role: created.role,
+  };
 }
 
 function normalizeIdentifier(input: string): string {
@@ -232,7 +271,7 @@ export async function login(identifier: string, password: string): Promise<Login
     return { success: false };
   }
 
-  if (isForcedChangePassword(password)) {
+  if (!user.passwordUpdated) {
     return { success: false, requiresPasswordChange: true };
   }
 
@@ -259,36 +298,33 @@ export async function changePassword(identifier: string, currentPassword: string
   if (newPassword === currentPassword) {
     badRequest("Use a new password different from your current password");
   }
-  if (newPassword === getResetPassword() || newPassword === getDefaultAdminPassword()) {
-    badRequest("New password cannot be the default password");
+  if (newPassword === getResetPassword()) {
+    badRequest("New password cannot be the reset/default password");
   }
 
-  const rows = normalizeUserRows(await readTable(USERS_SHEET, 0));
-  const index = rows.findIndex(
-    (row) =>
-      normalizeUsername(row.username ?? usernameFromEmail(row.email ?? "")) === normalizeUsername(user.username)
-  );
+  const rows = await readTable(USERS_SHEET, 0);
+  const normalized = rows.map((r) => toAuthUser(r));
+  const index = normalized.findIndex((u) => normalizeUsername(u.username) === normalizeUsername(user.username));
   if (index < 0) {
     badRequest("User not found");
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
-  const nextRows = [...rows];
-  nextRows[index] = {
-    username: user.username,
-    email: user.email,
+  const updated = {
+    ...user,
     hashedPassword,
-    createdAt: user.createdAt,
+    passwordUpdated: true,
   };
+  const nextRows = rows.map((r, i) => (i === index ? toRowRecord(updated) : toRowRecord(toAuthUser(r))));
   await writeTable(USERS_SHEET, USERS_HEADERS, nextRows);
 }
 
 export async function listUsers(): Promise<PublicAuthUser[]> {
-  const rows = normalizeUserRows(await readTable(USERS_SHEET, 15_000));
-  return rows
-    .map((row) => toAuthUser(row))
+  const rows = await readTable(USERS_SHEET, 15_000);
+  const users = rows.map((r) => toAuthUser(r)).filter((u) => u.email || u.username);
+  return users
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .map((row) => ({ username: row.username, email: row.email, createdAt: row.createdAt }));
+    .map((u) => ({ username: u.username, email: u.email, createdAt: u.createdAt, role: u.role }));
 }
 
 export async function deleteUser(username: string): Promise<void> {
@@ -304,10 +340,11 @@ export async function deleteUser(username: string): Promise<void> {
     badRequest("Default admin user cannot be deleted");
   }
 
-  const rows = normalizeUserRows(await readTable(USERS_SHEET, 0));
-  const nextRows = rows.filter(
-    (row) => normalizeUsername(row.username ?? usernameFromEmail(row.email ?? "")) !== target
-  );
+  const rows = await readTable(USERS_SHEET, 0);
+  const nextRows = rows
+    .map((r) => toAuthUser(r))
+    .filter((u) => normalizeUsername(u.username) !== target)
+    .map((u) => toRowRecord(u));
   if (nextRows.length === rows.length) {
     badRequest("User not found");
   }
@@ -330,13 +367,16 @@ export async function resetPassword(username: string): Promise<void> {
 
   const hashedPassword = await bcrypt.hash(getResetPassword(), BCRYPT_ROUNDS);
   const existing = toAuthUser(rows[index]);
-  const nextRows = [...rows];
-  nextRows[index] = {
-    username: existing.username,
-    email: existing.email,
-    hashedPassword,
-    createdAt: existing.createdAt,
-  };
+  const nextRows = rows.map((r, i) => {
+    if (i === index) {
+      return toRowRecord({
+        ...existing,
+        hashedPassword,
+        passwordUpdated: false,
+      });
+    }
+    return toRowRecord(toAuthUser(r));
+  });
   await writeTable(USERS_SHEET, USERS_HEADERS, nextRows);
 }
 
@@ -358,12 +398,14 @@ export async function ensureDefaultAdminAccount(): Promise<void> {
     .find((row) => normalizeEmail(row.email) === adminEmail);
   if (existing) return;
 
-  const hashedPassword = await bcrypt.hash(adminPassword, BCRYPT_ROUNDS);
+  const hashedPassword = await bcrypt.hash(getDefaultAdminPassword(), BCRYPT_ROUNDS);
   await createUser({
     username: adminUsername,
     email: adminEmail,
     hashedPassword,
     createdAt: new Date().toISOString(),
+    passwordUpdated: false,
+    role: "admin",
   });
   console.log(`Default admin account created for ${adminUsername}`);
 }

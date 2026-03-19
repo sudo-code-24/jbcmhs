@@ -52,6 +52,7 @@ async function authMiddleware(req, res, next) {
         authReq.user = {
             email: payload.email,
             sessionId: session.sessionId,
+            role: payload.role,
         };
         next();
     }

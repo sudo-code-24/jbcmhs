@@ -9,6 +9,7 @@ type AuthPayload = {
   password?: string;
   currentPassword?: string;
   newPassword?: string;
+  role?: string;
 };
 
 export async function signup(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -16,15 +17,20 @@ export async function signup(req: Request, res: Response, next: NextFunction): P
     const payload = (req.body ?? {}) as AuthPayload;
     const username = String(payload.username ?? "").trim();
     const email = String(payload.email ?? "").trim();
-    const password = String(payload.password ?? "");
+    const password = String(payload.password ?? "").trim();
+    const roleInput = String(payload.role ?? "faculty").trim().toLowerCase();
 
     if (!username || !password) {
       res.status(400).json({ error: "username and password are required" });
       return;
     }
+    if (!authService.isValidRole(roleInput)) {
+      res.status(400).json({ error: "role must be 'admin' or 'faculty'" });
+      return;
+    }
 
     const computedEmail = email || `${username}@jbcmhs.local`;
-    const created = await authService.signup(computedEmail, password, username);
+    const created = await authService.signup(computedEmail, password, username, roleInput as "admin" | "faculty");
     res.status(201).json({ success: true, user: created });
   } catch (err) {
     next(err);
@@ -47,14 +53,16 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
         res.status(403).json({
           success: false,
           requiresPasswordChange: true,
-          error: "Default password must be changed before signing in",
+          error: "Password must be updated before signing in",
         });
         return;
       }
       res.status(401).json({ success: false, error: "Invalid email or password" });
       return;
     }
-    const token = signAuthToken(result.userEmail);
+    const user = await authService.getUserByIdentifier(identifier);
+    const role = user?.role ?? "faculty";
+    const token = signAuthToken(result.userEmail, role);
     const expiresIn = getJwtExpiresInSeconds();
     const expiresAt = Date.now() + expiresIn * 1000;
     const session = await createSession({
@@ -68,7 +76,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
       token,
       sessionId: session.sessionId,
       expiresAt,
-      user: { email: result.userEmail },
+      user: { email: result.userEmail, role },
     });
   } catch (err) {
     next(err);
@@ -92,6 +100,25 @@ export async function changePassword(req: Request, res: Response, next: NextFunc
 
     await authService.changePassword(identifier, currentPassword, newPassword);
     res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function me(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const authReq = req as Request & { user?: { email: string } };
+    const email = authReq.user?.email;
+    if (!email) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const user = await authService.getUserByEmail(email);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    res.json({ email: user.email, username: user.username, role: user.role });
   } catch (err) {
     next(err);
   }

@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.signup = signup;
 exports.login = login;
 exports.changePassword = changePassword;
+exports.me = me;
 exports.listUsers = listUsers;
 exports.deleteUser = deleteUser;
 exports.resetPassword = resetPassword;
@@ -48,13 +49,18 @@ async function signup(req, res, next) {
         const payload = (req.body ?? {});
         const username = String(payload.username ?? "").trim();
         const email = String(payload.email ?? "").trim();
-        const password = String(payload.password ?? "");
+        const password = String(payload.password ?? "").trim();
+        const roleInput = String(payload.role ?? "faculty").trim().toLowerCase();
         if (!username || !password) {
             res.status(400).json({ error: "username and password are required" });
             return;
         }
+        if (!authService.isValidRole(roleInput)) {
+            res.status(400).json({ error: "role must be 'admin' or 'faculty'" });
+            return;
+        }
         const computedEmail = email || `${username}@jbcmhs.local`;
-        const created = await authService.signup(computedEmail, password, username);
+        const created = await authService.signup(computedEmail, password, username, roleInput);
         res.status(201).json({ success: true, user: created });
     }
     catch (err) {
@@ -76,14 +82,16 @@ async function login(req, res, next) {
                 res.status(403).json({
                     success: false,
                     requiresPasswordChange: true,
-                    error: "Default password must be changed before signing in",
+                    error: "Password must be updated before signing in",
                 });
                 return;
             }
             res.status(401).json({ success: false, error: "Invalid email or password" });
             return;
         }
-        const token = (0, jwt_1.signAuthToken)(result.userEmail);
+        const user = await authService.getUserByIdentifier(identifier);
+        const role = user?.role ?? "faculty";
+        const token = (0, jwt_1.signAuthToken)(result.userEmail, role);
         const expiresIn = (0, jwt_1.getJwtExpiresInSeconds)();
         const expiresAt = Date.now() + expiresIn * 1000;
         const session = await (0, sessionService_1.createSession)({
@@ -96,7 +104,7 @@ async function login(req, res, next) {
             token,
             sessionId: session.sessionId,
             expiresAt,
-            user: { email: result.userEmail },
+            user: { email: result.userEmail, role },
         });
     }
     catch (err) {
@@ -118,6 +126,25 @@ async function changePassword(req, res, next) {
         }
         await authService.changePassword(identifier, currentPassword, newPassword);
         res.json({ success: true });
+    }
+    catch (err) {
+        next(err);
+    }
+}
+async function me(req, res, next) {
+    try {
+        const authReq = req;
+        const email = authReq.user?.email;
+        if (!email) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+        const user = await authService.getUserByEmail(email);
+        if (!user) {
+            res.status(404).json({ error: "User not found" });
+            return;
+        }
+        res.json({ email: user.email, username: user.username, role: user.role });
     }
     catch (err) {
         next(err);

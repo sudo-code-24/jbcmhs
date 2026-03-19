@@ -35,11 +35,13 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const controller = __importStar(require("../controllers/announcementController"));
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const requireRole_1 = require("../middleware/requireRole");
 const router = (0, express_1.Router)();
 router.get("/", controller.list);
 router.get("/:id", controller.getOne);
-router.post("/", controller.create);
-router.put("/:id", controller.update);
-router.delete("/:id", controller.remove);
+router.post("/", authMiddleware_1.authMiddleware, (0, requireRole_1.requireRole)(["admin", "faculty"]), controller.create);
+router.put("/:id", authMiddleware_1.authMiddleware, (0, requireRole_1.requireRole)(["admin", "faculty"]), controller.update);
+router.delete("/:id", authMiddleware_1.authMiddleware, (0, requireRole_1.requireRole)(["admin", "faculty"]), controller.remove);
 exports.default = router;
 //# sourceMappingURL=announcements.js.map
