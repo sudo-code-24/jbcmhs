@@ -37,7 +37,7 @@ type AnnouncementFormProps = {
   onCancel?: () => void;
 };
 
-function defaults(initialValues?: Partial<AnnouncementFormValues>): AnnouncementFormValues {
+const getDefaults = (initialValues?: Partial<AnnouncementFormValues>): AnnouncementFormValues => {
   const inputDate = initialValues?.datePosted
     ? new Date(initialValues.datePosted).toISOString().slice(0, 16)
     : "";
@@ -49,16 +49,22 @@ function defaults(initialValues?: Partial<AnnouncementFormValues>): Announcement
     datePosted: inputDate,
     imageUrl: initialValues?.imageUrl ?? "",
   };
-}
+};
 
-export default function AnnouncementForm({ mode, initialValues, loading, onSubmit, onCancel }: AnnouncementFormProps) {
+const AnnouncementForm = ({
+  mode,
+  initialValues,
+  loading,
+  onSubmit,
+  onCancel,
+}: AnnouncementFormProps) => {
   const form = useForm<AnnouncementFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: defaults(initialValues),
+    defaultValues: getDefaults(initialValues),
   });
 
   useEffect(() => {
-    form.reset(defaults(initialValues));
+    form.reset(getDefaults(initialValues));
   }, [form, initialValues]);
 
   return (
@@ -161,4 +167,6 @@ export default function AnnouncementForm({ mode, initialValues, loading, onSubmi
       </form>
     </Form>
   );
-}
+};
+
+export default AnnouncementForm;

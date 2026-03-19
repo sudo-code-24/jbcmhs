@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -18,31 +18,27 @@ type MultiSelectDropdownProps = {
   className?: string;
 };
 
-export default function MultiSelectDropdown({
+const MultiSelectDropdown = ({
   label,
   options,
   selectedValues,
   onChange,
   allLabel,
   className,
-}: MultiSelectDropdownProps) {
+}: MultiSelectDropdownProps) => {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    function onClickOutside(event: MouseEvent) {
-      if (!rootRef.current) return;
-      if (!rootRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-
+    const onClickOutside = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
   const selectedLabels = useMemo(
-    () => options.filter((option) => selectedValues.includes(option.value)).map((option) => option.label),
+    () => options.filter((o) => selectedValues.includes(o.value)).map((o) => o.label),
     [options, selectedValues]
   );
 
@@ -53,13 +49,16 @@ export default function MultiSelectDropdown({
         ? selectedLabels.join(", ")
         : `${selectedLabels.slice(0, 2).join(", ")} +${selectedLabels.length - 2}`;
 
-  function toggleValue(value: string) {
-    if (selectedValues.includes(value)) {
-      onChange(selectedValues.filter((item) => item !== value));
-      return;
-    }
-    onChange([...selectedValues, value]);
-  }
+  const toggleValue = useCallback(
+    (value: string) => {
+      if (selectedValues.includes(value)) {
+        onChange(selectedValues.filter((item) => item !== value));
+      } else {
+        onChange([...selectedValues, value]);
+      }
+    },
+    [selectedValues, onChange]
+  );
 
   return (
     <div ref={rootRef} className={`relative ${className ?? ""}`}>
@@ -72,7 +71,6 @@ export default function MultiSelectDropdown({
         <span className="truncate text-left">{buttonText}</span>
         <ChevronDown className="ml-2 h-4 w-4 shrink-0" />
       </Button>
-
       {open ? (
         <div className="absolute left-0 top-full z-40 mt-2 w-full min-w-[220px] rounded-md border bg-popover p-2 text-popover-foreground shadow-lg">
           <div className="mb-2 flex items-center justify-between">
@@ -113,4 +111,6 @@ export default function MultiSelectDropdown({
       ) : null}
     </div>
   );
-}
+};
+
+export default MultiSelectDropdown;

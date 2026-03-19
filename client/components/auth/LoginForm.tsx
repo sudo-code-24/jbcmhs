@@ -15,14 +15,14 @@ type LoginApiError = {
   requiresPasswordChange?: boolean;
 };
 
-export default function LoginForm({ nextPath }: LoginFormProps) {
+const LoginForm = ({ nextPath }: LoginFormProps) => {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setLoading(true);
@@ -53,7 +53,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
     <Card className="w-full max-w-md">
@@ -71,7 +71,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
               type="email"
               autoComplete="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               required
             />
@@ -85,7 +85,7 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
               type="password"
               autoComplete="current-password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               required
             />
@@ -105,4 +105,6 @@ export default function LoginForm({ nextPath }: LoginFormProps) {
       </CardContent>
     </Card>
   );
-}
+};
+
+export default LoginForm;

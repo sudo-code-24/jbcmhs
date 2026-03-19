@@ -1,4 +1,4 @@
-import ChangePasswordForm from "./ChangePasswordForm";
+import ChangePasswordForm from "@/components/auth/ChangePasswordForm";
 
 type ChangePasswordPageProps = {
   searchParams?: {

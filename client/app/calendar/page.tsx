@@ -1,7 +1,7 @@
 import { getEvents } from "@/lib/api";
 import CalendarEmbedToggle from "@/components/CalendarEmbedToggle";
 import DownloadCalendarPdfButton from "@/components/DownloadCalendarPdfButton";
-import EventsDashboard from "@/components/EventsDashboard";
+import EventsDashboard from "@/components/event/EventsDashboard";
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";

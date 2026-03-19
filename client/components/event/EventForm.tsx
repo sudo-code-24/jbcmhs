@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { createEvent, updateEvent } from "@/lib/api";
@@ -34,7 +34,7 @@ const schema = z.object({
 
 type FormState = z.infer<typeof schema>;
 
-type CreateEventFormProps = {
+export type EventFormProps = {
   mode?: "create" | "update";
   eventId?: number;
   initialValues?: Partial<FormState>;
@@ -49,25 +49,23 @@ type CreateEventFormProps = {
   onCancel?: () => void;
 };
 
-function toInputDate(d?: string | Date): string {
+const toInputDate = (d?: string | Date): string => {
   if (!d) return "";
   const date = new Date(d);
   if (Number.isNaN(date.getTime())) return "";
   return date.toISOString().slice(0, 16);
-}
+};
 
-function defaults(initialValues?: Partial<FormState>): FormState {
-  return {
-    title: initialValues?.title ?? "",
-    description: initialValues?.description ?? "",
-    date: toInputDate(initialValues?.date),
-    endDate: toInputDate(initialValues?.endDate),
-    type: initialValues?.type ?? "event",
-    imageUrl: initialValues?.imageUrl ?? "",
-  };
-}
+const getDefaults = (initialValues?: Partial<FormState>): FormState => ({
+  title: initialValues?.title ?? "",
+  description: initialValues?.description ?? "",
+  date: toInputDate(initialValues?.date),
+  endDate: toInputDate(initialValues?.endDate),
+  type: initialValues?.type ?? "event",
+  imageUrl: initialValues?.imageUrl ?? "",
+});
 
-export default function CreateEventForm({
+const EventForm = ({
   mode = "create",
   eventId,
   initialValues,
@@ -80,7 +78,7 @@ export default function CreateEventForm({
   fabOnMobile = false,
   onSuccess,
   onCancel,
-}: CreateEventFormProps) {
+}: EventFormProps) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loadingLocal, setLoadingLocal] = useState(false);
@@ -89,46 +87,47 @@ export default function CreateEventForm({
 
   const form = useForm<FormState>({
     resolver: zodResolver(schema),
-    defaultValues: defaults(initialValues),
+    defaultValues: getDefaults(initialValues),
   });
 
   useEffect(() => {
-    form.reset(defaults(initialValues));
+    form.reset(getDefaults(initialValues));
   }, [form, initialValues]);
 
-  async function handleSubmit(values: FormState) {
-    setError("");
-    setLoadingLocal(true);
-    try {
-      const payload = {
-        ...values,
-        description: values.description || "",
-        date: values.date ? new Date(values.date).toISOString() : new Date().toISOString(),
-        endDate: values.endDate ? new Date(values.endDate).toISOString() : undefined,
-      };
-      if (mode === "update" && !eventId) {
-        throw new Error("Missing event id for update.");
+  const handleSubmit = useCallback(
+    async (values: FormState) => {
+      setError("");
+      setLoadingLocal(true);
+      try {
+        const payload = {
+          ...values,
+          description: values.description || "",
+          date: values.date ? new Date(values.date).toISOString() : new Date().toISOString(),
+          endDate: values.endDate ? new Date(values.endDate).toISOString() : undefined,
+        };
+        if (mode === "update" && !eventId) {
+          throw new Error("Missing event id for update.");
+        }
+        const event =
+          mode === "update" ? await updateEvent(eventId!, payload) : await createEvent(payload);
+        if (mode === "create") form.reset(getDefaults());
+        if (!inline) setOpen(false);
+        onSuccess?.(event);
+        if (!onSuccess) router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : `Failed to ${mode} event`);
+      } finally {
+        setLoadingLocal(false);
       }
-
-      const event = mode === "update" ? await updateEvent(eventId!, payload) : await createEvent(payload);
-
-      if (mode === "create") {
-        form.reset(defaults());
-      }
-      if (!inline) setOpen(false);
-
-      onSuccess?.(event);
-      if (!onSuccess) router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : `Failed to ${mode} event`);
-    } finally {
-      setLoadingLocal(false);
-    }
-  }
+    },
+    [mode, eventId, inline, onSuccess, router]
+  );
 
   const formContent = (
     <>
-      {error ? <p className="mb-4 rounded-md bg-destructive/10 p-2 text-sm text-destructive">{error}</p> : null}
+      {error ? (
+        <p className="mb-4 rounded-md bg-destructive/10 p-2 text-sm text-destructive">{error}</p>
+      ) : null}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
           <FormField
@@ -267,5 +266,6 @@ export default function CreateEventForm({
       </Modal>
     </>
   );
-}
+};
 
+export default EventForm;

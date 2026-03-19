@@ -6,10 +6,14 @@ import type { Event } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import CreateEventForm from "@/components/CreateEventForm";
+import EventForm from "./EventForm";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 
-export default function AdminEvents({ initial }: { initial: Event[] }) {
+type AdminEventsProps = {
+  initial: Event[];
+};
+
+const AdminEvents = ({ initial }: AdminEventsProps) => {
   const [list, setList] = useState<Event[]>(initial);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,7 +39,7 @@ export default function AdminEvents({ initial }: { initial: Event[] }) {
     <div className="space-y-4 pb-24 md:pb-0">
       {error && <p className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">{error}</p>}
       <div className="flex justify-end">
-        <CreateEventForm
+        <EventForm
           mode="create"
           fabOnMobile
           onSuccess={(created) => {
@@ -59,7 +63,7 @@ export default function AdminEvents({ initial }: { initial: Event[] }) {
                   </Badge>
                 </div>
                 <div className="flex gap-2">
-                  <CreateEventForm
+                  <EventForm
                     mode="update"
                     eventId={ev.id}
                     initialValues={{
@@ -102,4 +106,6 @@ export default function AdminEvents({ initial }: { initial: Event[] }) {
       </ul>
     </div>
   );
-}
+};
+
+export default AdminEvents;
