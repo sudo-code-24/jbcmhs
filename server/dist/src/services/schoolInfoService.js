@@ -24,19 +24,6 @@ function notFound() {
     err.status = 404;
     throw err;
 }
-function normalizeImageUrl(value) {
-    const raw = (value ?? "").trim();
-    if (!raw)
-        return "";
-    const driveFileId = (0, googleDrive_1.extractDriveFileId)(raw);
-    const isLikelyDriveSource = raw.includes("drive.google.com") ||
-        raw.includes("docs.google.com") ||
-        (!raw.includes("/") && /^[A-Za-z0-9_-]{20,}$/.test(raw));
-    if (isLikelyDriveSource && driveFileId && !driveFileId.includes("http")) {
-        return (0, googleDrive_1.toPublicImageUrl)(driveFileId);
-    }
-    return raw;
-}
 function toSchoolInfo(row) {
     return {
         id: Number.parseInt(row.id ?? "1", 10),
@@ -48,8 +35,8 @@ function toSchoolInfo(row) {
         email: row.email ?? "",
         address: row.address ?? "",
         officeHours: row.officeHours ?? "",
-        heroImageUrl: normalizeImageUrl(row.heroImageUrl) || undefined,
-        schoolImageUrl: normalizeImageUrl(row.schoolImageUrl) || undefined,
+        heroImageUrl: (0, googleDrive_1.normalizeImageUrl)(row.heroImageUrl) || undefined,
+        schoolImageUrl: (0, googleDrive_1.normalizeImageUrl)(row.schoolImageUrl) || undefined,
     };
 }
 async function get() {
@@ -71,8 +58,8 @@ async function upsert(data) {
         email: data.email ?? current.email ?? "",
         address: data.address ?? current.address ?? "",
         officeHours: data.officeHours ?? current.officeHours ?? "",
-        heroImageUrl: normalizeImageUrl(data.heroImageUrl ?? current.heroImageUrl ?? ""),
-        schoolImageUrl: normalizeImageUrl(data.schoolImageUrl ?? current.schoolImageUrl ?? ""),
+        heroImageUrl: (0, googleDrive_1.normalizeImageUrl)(data.heroImageUrl ?? current.heroImageUrl ?? ""),
+        schoolImageUrl: (0, googleDrive_1.normalizeImageUrl)(data.schoolImageUrl ?? current.schoolImageUrl ?? ""),
     };
     await (0, googleSheetsStore_1.writeTable)(SHEET_NAME, HEADERS, [next]);
     (0, googleSheetsStore_1.deleteCacheByPrefix)(TABLE_CACHE_PREFIX);

@@ -33,6 +33,27 @@ export function toPublicImageUrl(fileId?: string): string {
   return `${apiBase}/api/images/${encodeURIComponent(fileId)}`;
 }
 
+/**
+ * Normalize an image URL from Google Sheets (e.g. hero_image, imageUrl).
+ * Converts Drive links / file IDs to the proxied public image URL.
+ */
+export function normalizeImageUrl(value?: string): string {
+  const raw = (value ?? "").trim();
+  if (!raw) return "";
+
+  const driveFileId = extractDriveFileId(raw);
+  const isLikelyDriveSource =
+    raw.includes("drive.google.com") ||
+    raw.includes("docs.google.com") ||
+    (!raw.includes("/") && /^[A-Za-z0-9_-]{20,}$/.test(raw));
+
+  if (isLikelyDriveSource && driveFileId && !driveFileId.includes("http")) {
+    return toPublicImageUrl(driveFileId);
+  }
+
+  return raw;
+}
+
 export async function assertDriveFileExists(fileId?: string): Promise<void> {
   if (!fileId) return;
   const drive = getDriveApi();

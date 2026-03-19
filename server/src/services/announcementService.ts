@@ -1,3 +1,4 @@
+import { normalizeImageUrl } from "../lib/googleDrive";
 import {
   RowRecord,
   deleteCacheByPrefix,
@@ -26,7 +27,7 @@ function notFound(): never {
 }
 
 function toAnnouncement(row: RowRecord): Announcement {
-  const imageUrl = (row.imageUrl ?? "").trim() || undefined;
+  const imageUrl = normalizeImageUrl(row.imageUrl) || undefined;
   return {
     id: Number.parseInt(row.id ?? "0", 10),
     title: row.title ?? "",

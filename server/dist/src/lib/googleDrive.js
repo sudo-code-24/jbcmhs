@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.extractDriveFileId = extractDriveFileId;
 exports.toDriveThumbnailUrl = toDriveThumbnailUrl;
 exports.toPublicImageUrl = toPublicImageUrl;
+exports.normalizeImageUrl = normalizeImageUrl;
 exports.assertDriveFileExists = assertDriveFileExists;
 const googleClients_1 = require("./googleClients");
 function extractDriveFileId(value) {
@@ -37,6 +38,23 @@ function toPublicImageUrl(fileId) {
     if (!apiBase)
         return toDriveThumbnailUrl(fileId);
     return `${apiBase}/api/images/${encodeURIComponent(fileId)}`;
+}
+/**
+ * Normalize an image URL from Google Sheets (e.g. hero_image, imageUrl).
+ * Converts Drive links / file IDs to the proxied public image URL.
+ */
+function normalizeImageUrl(value) {
+    const raw = (value ?? "").trim();
+    if (!raw)
+        return "";
+    const driveFileId = extractDriveFileId(raw);
+    const isLikelyDriveSource = raw.includes("drive.google.com") ||
+        raw.includes("docs.google.com") ||
+        (!raw.includes("/") && /^[A-Za-z0-9_-]{20,}$/.test(raw));
+    if (isLikelyDriveSource && driveFileId && !driveFileId.includes("http")) {
+        return toPublicImageUrl(driveFileId);
+    }
+    return raw;
 }
 async function assertDriveFileExists(fileId) {
     if (!fileId)

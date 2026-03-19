@@ -1,4 +1,4 @@
-import { extractDriveFileId, toPublicImageUrl } from "../lib/googleDrive";
+import { normalizeImageUrl } from "../lib/googleDrive";
 import { RowRecord, deleteCacheByPrefix, readTable, writeTable } from "../lib/googleSheetsStore";
 
 type SchoolInfo = {
@@ -35,23 +35,6 @@ function notFound(): never {
   const err = new Error("School info not found") as Error & { status: number };
   err.status = 404;
   throw err;
-}
-
-function normalizeImageUrl(value?: string): string {
-  const raw = (value ?? "").trim();
-  if (!raw) return "";
-
-  const driveFileId = extractDriveFileId(raw);
-  const isLikelyDriveSource =
-    raw.includes("drive.google.com") ||
-    raw.includes("docs.google.com") ||
-    (!raw.includes("/") && /^[A-Za-z0-9_-]{20,}$/.test(raw));
-
-  if (isLikelyDriveSource && driveFileId && !driveFileId.includes("http")) {
-    return toPublicImageUrl(driveFileId);
-  }
-
-  return raw;
 }
 
 function toSchoolInfo(row: RowRecord): SchoolInfo {

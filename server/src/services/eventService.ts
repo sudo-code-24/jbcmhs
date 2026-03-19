@@ -1,4 +1,5 @@
 import { createCalendarEvent, deleteCalendarEvent, upsertCalendarEvent } from "../lib/googleCalendar";
+import { normalizeImageUrl } from "../lib/googleDrive";
 import { RowRecord, deleteCacheByPrefix, getNextNumericId, readTable, writeTable } from "../lib/googleSheetsStore";
 
 type Event = {
@@ -24,7 +25,7 @@ function notFound(): never {
 
 function toEvent(row: RowRecord): Event {
   const dateValue = row.date ? new Date(row.date) : new Date();
-  const imageUrl = (row.imageUrl ?? "").trim() || undefined;
+  const imageUrl = normalizeImageUrl(row.imageUrl) || undefined;
   return {
     id: Number.parseInt(row.id ?? "0", 10),
     title: row.title ?? "",

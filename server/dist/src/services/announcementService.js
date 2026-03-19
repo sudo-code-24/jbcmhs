@@ -5,6 +5,7 @@ exports.getById = getById;
 exports.create = create;
 exports.update = update;
 exports.remove = remove;
+const googleDrive_1 = require("../lib/googleDrive");
 const googleSheetsStore_1 = require("../lib/googleSheetsStore");
 const SHEET_NAME = process.env.GOOGLE_SHEET_ANNOUNCEMENTS || "announcements";
 const HEADERS = ["id", "title", "content", "category", "datePosted", "imageUrl"];
@@ -15,7 +16,7 @@ function notFound() {
     throw err;
 }
 function toAnnouncement(row) {
-    const imageUrl = (row.imageUrl ?? "").trim() || undefined;
+    const imageUrl = (0, googleDrive_1.normalizeImageUrl)(row.imageUrl) || undefined;
     return {
         id: Number.parseInt(row.id ?? "0", 10),
         title: row.title ?? "",

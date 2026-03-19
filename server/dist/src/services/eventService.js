@@ -6,6 +6,7 @@ exports.create = create;
 exports.update = update;
 exports.remove = remove;
 const googleCalendar_1 = require("../lib/googleCalendar");
+const googleDrive_1 = require("../lib/googleDrive");
 const googleSheetsStore_1 = require("../lib/googleSheetsStore");
 const SHEET_NAME = process.env.GOOGLE_SHEET_EVENTS || "events";
 const HEADERS = ["id", "title", "description", "date", "endDate", "type", "imageUrl", "googleEventId"];
@@ -17,7 +18,7 @@ function notFound() {
 }
 function toEvent(row) {
     const dateValue = row.date ? new Date(row.date) : new Date();
-    const imageUrl = (row.imageUrl ?? "").trim() || undefined;
+    const imageUrl = (0, googleDrive_1.normalizeImageUrl)(row.imageUrl) || undefined;
     return {
         id: Number.parseInt(row.id ?? "0", 10),
         title: row.title ?? "",
