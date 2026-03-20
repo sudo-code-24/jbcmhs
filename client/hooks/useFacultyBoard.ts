@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import initialFacultyCards from "@/data/facultyBoard.initial.json";
 
 export type FacultyCardItem = {
@@ -17,9 +17,20 @@ export type FacultyCardItem = {
 
 const STORAGE_KEY = "faculty-board-cards-v1";
 
+/** Custom event + storage — public board listens to pick up admin saves */
+export const FACULTY_BOARD_STORAGE_EVENT = "faculty-board-storage-updated";
+
 type FacultyBoardState = {
   rows: string[];
   cards: FacultyCardItem[];
+};
+
+export type UseFacultyBoardOptions = {
+  /**
+   * When `true` (default), board writes to localStorage on every change (public / legacy).
+   * When `false` (admin builder), changes are draft-only until `commitLayout()`.
+   */
+  autoPersist?: boolean;
 };
 
 const normalizeCards = (cards: FacultyCardItem[]): FacultyCardItem[] =>
@@ -41,9 +52,73 @@ const deriveRowsFromCards = (cards: FacultyCardItem[]) => {
   return ordered;
 };
 
-export function useFacultyBoard() {
+function cloneBoard(state: FacultyBoardState): FacultyBoardState {
+  return {
+    rows: [...state.rows],
+    cards: state.cards.map((c) => ({ ...c })),
+  };
+}
+
+function boardEquals(a: FacultyBoardState, b: FacultyBoardState): boolean {
+  return (
+    JSON.stringify({ rows: a.rows, cards: a.cards }) === JSON.stringify({ rows: b.rows, cards: b.cards })
+  );
+}
+
+function parseFacultyBoardJson(raw: string): FacultyBoardState | null {
+  try {
+    const parsed = JSON.parse(raw) as
+      | FacultyCardItem[]
+      | {
+          rows?: unknown;
+          cards?: FacultyCardItem[];
+        };
+
+    if (Array.isArray(parsed)) {
+      const normalizedCards = normalizeCards(parsed);
+      return {
+        cards: normalizedCards,
+        rows: deriveRowsFromCards(normalizedCards),
+      };
+    }
+    const normalizedCards = normalizeCards((parsed.cards ?? []) as FacultyCardItem[]);
+    const parsedRows = Array.isArray(parsed.rows)
+      ? (parsed.rows as unknown[]).filter((r): r is string => typeof r === "string").map((r) => r.trim())
+      : deriveRowsFromCards(normalizedCards);
+    return {
+      cards: normalizedCards,
+      rows: parsedRows.length > 0 ? parsedRows : deriveRowsFromCards(normalizedCards),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function loadBoardFromStorage(): FacultyBoardState {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = parseFacultyBoardJson(raw);
+      if (parsed) return parsed;
+    }
+  } catch {
+    /* use seed */
+  }
+  const normalizedCards = normalizeCards(initialFacultyCards as FacultyCardItem[]);
+  return {
+    cards: normalizedCards,
+    rows: deriveRowsFromCards(normalizedCards),
+  };
+}
+
+export function useFacultyBoard(options: UseFacultyBoardOptions = {}) {
+  const { autoPersist = true } = options;
+
   const [board, setBoard] = useState<FacultyBoardState>({ rows: [], cards: [] });
   const [isLoaded, setIsLoaded] = useState(false);
+  /** Bumps when `commitLayout` runs so `isLayoutDirty` recomputes */
+  const [savedVersion, setSavedVersion] = useState(0);
+  const savedBoardRef = useRef<FacultyBoardState | null>(null);
 
   const { rows, cards } = board;
 
@@ -62,52 +137,21 @@ export function useFacultyBoard() {
   }, []);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as
-          | FacultyCardItem[]
-          | {
-              rows?: unknown;
-              cards?: FacultyCardItem[];
-            };
-
-        if (Array.isArray(parsed)) {
-          const normalizedCards = normalizeCards(parsed);
-          setBoard({
-            cards: normalizedCards,
-            rows: deriveRowsFromCards(normalizedCards),
-          });
-        } else {
-          const normalizedCards = normalizeCards((parsed.cards ?? []) as FacultyCardItem[]);
-          const parsedRows = Array.isArray(parsed.rows)
-            ? (parsed.rows as unknown[]).filter((r): r is string => typeof r === "string").map((r) => r.trim())
-            : deriveRowsFromCards(normalizedCards);
-          setBoard({
-            cards: normalizedCards,
-            rows: parsedRows.length > 0 ? parsedRows : deriveRowsFromCards(normalizedCards),
-          });
-        }
-      } else {
-        const normalizedCards = normalizeCards(initialFacultyCards as FacultyCardItem[]);
-        setBoard({
-          cards: normalizedCards,
-          rows: deriveRowsFromCards(normalizedCards),
-        });
-      }
-    } catch {
-      const normalizedCards = normalizeCards(initialFacultyCards as FacultyCardItem[]);
-      setBoard({
-        cards: normalizedCards,
-        rows: deriveRowsFromCards(normalizedCards),
-      });
-    } finally {
-      setIsLoaded(true);
-    }
+    const next = loadBoardFromStorage();
+    setBoard(next);
+    setIsLoaded(true);
   }, []);
 
+  /** Draft mode: snapshot last-saved board once after hydration */
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || autoPersist) return;
+    if (savedBoardRef.current !== null) return;
+    savedBoardRef.current = cloneBoard({ rows, cards });
+    setSavedVersion((v) => v + 1);
+  }, [isLoaded, autoPersist, rows, cards]);
+
+  useEffect(() => {
+    if (!isLoaded || !autoPersist) return;
     window.localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
@@ -115,7 +159,49 @@ export function useFacultyBoard() {
         cards,
       })
     );
-  }, [cards, isLoaded, rows]);
+  }, [cards, isLoaded, rows, autoPersist]);
+
+  /** Public board: reload when admin commits or other tab updates storage */
+  useEffect(() => {
+    if (!autoPersist) return;
+    const syncFromStorage = () => {
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const parsed = parseFacultyBoardJson(raw);
+        if (parsed) setBoard(parsed);
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener(FACULTY_BOARD_STORAGE_EVENT, syncFromStorage);
+    window.addEventListener("storage", syncFromStorage);
+    return () => {
+      window.removeEventListener(FACULTY_BOARD_STORAGE_EVENT, syncFromStorage);
+      window.removeEventListener("storage", syncFromStorage);
+    };
+  }, [autoPersist]);
+
+  const commitLayout = useCallback(() => {
+    const snapshot = cloneBoard({ rows, cards });
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    savedBoardRef.current = snapshot;
+    setSavedVersion((v) => v + 1);
+    window.dispatchEvent(new CustomEvent(FACULTY_BOARD_STORAGE_EVENT));
+  }, [rows, cards]);
+
+  const revertLayout = useCallback(() => {
+    const snap = savedBoardRef.current;
+    if (!snap) return;
+    setBoard(cloneBoard(snap));
+  }, []);
+
+  const isLayoutDirty = useMemo(() => {
+    if (autoPersist) return false;
+    const snap = savedBoardRef.current;
+    if (!snap) return false;
+    return !boardEquals({ rows, cards }, snap);
+  }, [autoPersist, rows, cards, savedVersion]);
 
   const groupedCards = useMemo(() => {
     const rowOrder = rows.length > 0 ? rows : deriveRowsFromCards(cards);
@@ -404,6 +490,9 @@ export function useFacultyBoard() {
     rows,
     groupedCards,
     isLoaded,
+    isLayoutDirty,
+    commitLayout,
+    revertLayout,
     addCard,
     saveCard,
     deleteCard,

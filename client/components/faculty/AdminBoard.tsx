@@ -1,52 +1,41 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import type { FacultyCardItem } from "@/hooks/useFacultyBoard";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { matchesFacultySearch } from "@/lib/facultyBoardSearch";
 import { cn } from "@/lib/utils";
 import FacultyCard from "./FacultyCard";
-
-type DraftCard = {
-  name: string;
-  role: string;
-  department: string;
-  boardSection: string;
-  positionIndex: number; // 1-based column
-  email: string;
-  phone: string;
-  photoUrl: string;
-};
+import {
+  emptyFacultyCardDraft,
+  type FacultyCardDraft,
+} from "./admin-board/types";
+import { CreateDepartmentFormModal } from "./admin-board/modals/CreateDepartmentFormModal";
+import { EditDepartmentFormModal } from "./admin-board/modals/EditDepartmentFormModal";
+import { FacultyCardFormModal } from "./admin-board/modals/FacultyCardFormModal";
 
 type AdminBoardProps = {
   rows: string[];
   cards: FacultyCardItem[];
   onAddRow: (rowName: string) => void;
-  onAddCardToSectionAtIndex: (card: Omit<FacultyCardItem, "id">, targetSection: string, targetIndex1Based: number) => void;
+  onAddCardToSectionAtIndex: (
+    card: Omit<FacultyCardItem, "id">,
+    targetSection: string,
+    targetIndex1Based: number,
+  ) => void;
   onUpsertCardWithOrdering: (card: FacultyCardItem) => void;
   onDeleteCard: (id: string) => void;
   onMoveCardWithinSectionToIndex: (id: string, targetIndex: number) => void;
-  onMoveCardToSectionAtIndex: (id: string, targetSection: string, targetIndex: number) => void;
+  onMoveCardToSectionAtIndex: (
+    id: string,
+    targetSection: string,
+    targetIndex: number,
+  ) => void;
   onMoveRowToBefore: (fromIndex: number, beforeIndex: number) => void;
   onUpdateRowDetail: (fromSection: string, toSection: string) => void;
   onDeleteRow: (section: string) => void;
-  /** When set, only matching cards are shown per row (full data is unchanged). */
   searchQuery?: string;
-};
-
-const emptyDraft: DraftCard = {
-  name: "",
-  role: "",
-  department: "",
-  boardSection: "",
-  positionIndex: 1,
-  email: "",
-  phone: "",
-  photoUrl: "",
 };
 
 export default function AdminBoard({
@@ -66,17 +55,27 @@ export default function AdminBoard({
   const [cardModalOpen, setCardModalOpen] = useState(false);
   const [rowModalOpen, setRowModalOpen] = useState(false);
   const [editRowModalOpen, setEditRowModalOpen] = useState(false);
-  const [editRowOriginalSection, setEditRowOriginalSection] = useState<string | null>(null);
+  const [editRowOriginalSection, setEditRowOriginalSection] = useState<
+    string | null
+  >(null);
   const [editRowNameDraft, setEditRowNameDraft] = useState("");
   const [editRowError, setEditRowError] = useState<string | null>(null);
   const [deleteRowTarget, setDeleteRowTarget] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<DraftCard>(emptyDraft);
+  const [draft, setDraft] = useState<FacultyCardDraft>(emptyFacultyCardDraft);
   const [rowDraft, setRowDraft] = useState("");
 
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [overRow, setOverRow] = useState<string | null>(null);
+
+  const [deleteCardId, setDeleteCardId] = useState<string | null>(null);
+  const [cardSaveConfirmOpen, setCardSaveConfirmOpen] = useState(false);
+  const pendingCardSaveRef = useRef<{
+    editingId: string | null;
+    payload: Omit<FacultyCardItem, "id">;
+  } | null>(null);
+  const [editRowSaveConfirmOpen, setEditRowSaveConfirmOpen] = useState(false);
 
   const cardsForRow = useMemo(() => {
     const bySection = new Map<string, FacultyCardItem[]>();
@@ -105,14 +104,9 @@ export default function AdminBoard({
     const rowCards = cardsForRow.get(rowSection) ?? [];
     setEditingId(null);
     setDraft({
-      name: "",
-      role: "",
-      department: "",
+      ...emptyFacultyCardDraft,
       boardSection: rowSection,
       positionIndex: rowCards.length + 1,
-      email: "",
-      phone: "",
-      photoUrl: "",
     });
     setCardModalOpen(true);
   };
@@ -132,30 +126,56 @@ export default function AdminBoard({
     setCardModalOpen(true);
   };
 
-  const normalizeDraftToFacultyCard = (): Omit<FacultyCardItem, "id"> => {
-    return {
-      name: draft.name.trim(),
-      role: draft.role.trim(),
-      department: draft.department.trim(),
-      boardSection: draft.boardSection.trim(),
-      email: draft.email.trim() ? draft.email.trim() : undefined,
-      phone: draft.phone.trim() ? draft.phone.trim() : undefined,
-      photoUrl: draft.photoUrl.trim() ? draft.photoUrl.trim() : undefined,
-      positionIndex: Math.max(1, Math.floor(Number(draft.positionIndex) || 1)),
-    };
-  };
+  const normalizeDraftToFacultyCard = (): Omit<FacultyCardItem, "id"> => ({
+    name: draft.name.trim(),
+    role: draft.role.trim(),
+    department: draft.department.trim(),
+    boardSection: draft.boardSection.trim(),
+    email: draft.email.trim() ? draft.email.trim() : undefined,
+    phone: draft.phone.trim() ? draft.phone.trim() : undefined,
+    photoUrl: draft.photoUrl.trim() ? draft.photoUrl.trim() : undefined,
+    positionIndex: Math.max(1, Math.floor(Number(draft.positionIndex) || 1)),
+  });
 
   const onSubmitCard = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!draft.name.trim() || !draft.role.trim() || !draft.department.trim() || !draft.boardSection.trim()) return;
-
-    const normalized = normalizeDraftToFacultyCard();
-    if (editingId) {
-      onUpsertCardWithOrdering({ id: editingId, ...normalized });
-    } else {
-      onAddCardToSectionAtIndex(normalized, normalized.boardSection, normalized.positionIndex);
+    if (
+      !draft.name.trim() ||
+      !draft.role.trim() ||
+      !draft.department.trim() ||
+      !draft.boardSection.trim()
+    ) {
+      return;
     }
+
+    pendingCardSaveRef.current = {
+      editingId,
+      payload: normalizeDraftToFacultyCard(),
+    };
+    setCardSaveConfirmOpen(true);
+  };
+
+  const confirmCardSave = () => {
+    const pending = pendingCardSaveRef.current;
+    if (!pending) return;
+    const { editingId: id, payload } = pending;
+    if (id) {
+      onUpsertCardWithOrdering({ id, ...payload });
+    } else {
+      onAddCardToSectionAtIndex(
+        payload,
+        payload.boardSection,
+        payload.positionIndex,
+      );
+    }
+    pendingCardSaveRef.current = null;
+    setCardSaveConfirmOpen(false);
     setCardModalOpen(false);
+  };
+
+  const cancelCardSave = () => {
+    pendingCardSaveRef.current = null;
+    setCardSaveConfirmOpen(false);
   };
 
   const openEditRow = (section: string) => {
@@ -165,16 +185,66 @@ export default function AdminBoard({
     setEditRowModalOpen(true);
   };
 
+  const closeEditRowModal = () => {
+    setEditRowModalOpen(false);
+    setEditRowOriginalSection(null);
+    setEditRowError(null);
+  };
+
+  const onEditRowFormSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editRowOriginalSection) return;
+    const next = editRowNameDraft.trim();
+    if (!next) {
+      setEditRowError("Row name is required.");
+      return;
+    }
+    if (next !== editRowOriginalSection && rows.includes(next)) {
+      setEditRowError("A row with that name already exists.");
+      return;
+    }
+    setEditRowSaveConfirmOpen(true);
+  };
+
+  const confirmSaveDepartment = () => {
+    if (!editRowOriginalSection) return;
+    onUpdateRowDetail(editRowOriginalSection, editRowNameDraft.trim());
+    setEditRowSaveConfirmOpen(false);
+    closeEditRowModal();
+  };
+
   const cardsInDeleteTarget =
-    deleteRowTarget != null ? cards.filter((c) => c.boardSection === deleteRowTarget).length : 0;
+    deleteRowTarget != null
+      ? cards.filter((c) => c.boardSection === deleteRowTarget).length
+      : 0;
+
+  const deleteCardTarget = deleteCardId
+    ? cards.find((c) => c.id === deleteCardId)
+    : null;
+
+  const onCreateDepartmentSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!rowDraft.trim()) return;
+    onAddRow(rowDraft);
+    setRowModalOpen(false);
+  };
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-primary">Faculty Board Builder</h2>
+        <h2 className="text-xl font-semibold text-primary">
+          Faculty Board Builder
+        </h2>
         <div className="flex gap-2">
-          <Button type="button" variant="secondary" onClick={() => { setRowDraft(""); setRowModalOpen(true); }}>
-            Create New Row
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setRowDraft("");
+              setRowModalOpen(true);
+            }}
+          >
+            Create New Department
           </Button>
         </div>
       </div>
@@ -187,7 +257,8 @@ export default function AdminBoard({
 
       {rows.length > 0 && searchTrim && !adminHasVisibleCards ? (
         <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-          No faculty match your search in any row. Clear the search box to see all cards.
+          No faculty match your search in any row. Clear the search box to see
+          all cards.
         </div>
       ) : null}
 
@@ -202,46 +273,46 @@ export default function AdminBoard({
         }
 
         return (
-            <section
-              key={rowSection}
-              className={cn(
-                "space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm transition",
-                "dark:border-white/10 dark:bg-slate-900/45 dark:shadow-md dark:shadow-black/20",
-                overRow === rowSection && draggingId && "ring-2 ring-primary/60"
-              )}
-              onDragOver={(e) => {
-                if (!draggingId) return;
-                e.preventDefault();
-                setOverRow(rowSection);
-              }}
-              onDragLeave={(e) => {
-                if (!draggingId) return;
-                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                  setOverRow((prev) => (prev === rowSection ? null : prev));
-                }
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const raw = e.dataTransfer.getData("text/plain") || draggingId || "";
-                const sourceId = raw || draggingId;
-                if (!sourceId) return;
+          <section
+            key={rowSection}
+            className={cn(
+              "space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm transition",
+              "dark:border-white/10 dark:bg-slate-900/45 dark:shadow-md dark:shadow-black/20",
+              overRow === rowSection && draggingId && "ring-2 ring-primary/60",
+            )}
+            onDragOver={(e) => {
+              if (!draggingId) return;
+              e.preventDefault();
+              setOverRow(rowSection);
+            }}
+            onDragLeave={(e) => {
+              if (!draggingId) return;
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                setOverRow((prev) => (prev === rowSection ? null : prev));
+              }
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const raw =
+                e.dataTransfer.getData("text/plain") || draggingId || "";
+              const sourceId = raw || draggingId;
+              if (!sourceId) return;
 
-                onMoveCardToSectionAtIndex(sourceId, rowSection, rowCards.length);
-                setDraggingId(null);
-                setOverId(null);
-                setOverRow(null);
-              }}
-            >
+              onMoveCardToSectionAtIndex(sourceId, rowSection, rowCards.length);
+              setDraggingId(null);
+              setOverId(null);
+              setOverRow(null);
+            }}
+          >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
-                  <h3 className="text-lg font-semibold">
-                    {rowSection}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Reorder rows with Row ↑ / Row ↓. Drag cards to reorder within a row or move to another row (drop on a card
-                    or this panel).
-                  </p>
+                <h3 className="text-lg font-semibold">{rowSection}</h3>
+                <p className="text-xs text-muted-foreground">
+                  Reorder rows with Move Up ↑ / Move Down ↓. Drag cards to
+                  reorder within a row or move to another row (drop on a card or
+                  this panel).
+                </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Button
@@ -251,7 +322,7 @@ export default function AdminBoard({
                   disabled={rowIdx <= 0}
                   onClick={() => onMoveRowToBefore(rowIdx, rowIdx - 1)}
                 >
-                  Row ↑
+                  Move Up ↑
                 </Button>
                 <Button
                   type="button"
@@ -260,16 +331,31 @@ export default function AdminBoard({
                   disabled={rowIdx >= rows.length - 1}
                   onClick={() => onMoveRowToBefore(rowIdx, rowIdx + 2)}
                 >
-                  Row ↓
+                  Move Down ↓
                 </Button>
-                <Button type="button" size="sm" variant="outline" onClick={() => openEditRow(rowSection)}>
-                  Edit row
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => openEditRow(rowSection)}
+                >
+                  Edit Department
                 </Button>
-                <Button type="button" size="sm" variant="destructive" onClick={() => setDeleteRowTarget(rowSection)}>
-                  Delete row
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => setDeleteRowTarget(rowSection)}
+                >
+                  Delete Department
                 </Button>
-                <Button type="button" size="sm" variant="secondary" onClick={() => openCreateCardForRow(rowSection)}>
-                  Add Column
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => openCreateCardForRow(rowSection)}
+                >
+                  Add New Staff
                 </Button>
               </div>
             </div>
@@ -301,19 +387,27 @@ export default function AdminBoard({
                   onDrop={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    const raw = e.dataTransfer.getData("text/plain") || draggingId || "";
+                    const raw =
+                      e.dataTransfer.getData("text/plain") || draggingId || "";
                     const sourceId = raw || draggingId;
                     if (!sourceId || sourceId === card.id) return;
 
                     const sourceCard = cards.find((c) => c.id === sourceId);
                     if (!sourceCard) return;
 
-                    const targetIndexInRow = rowCards.findIndex((c) => c.id === card.id);
-                    const dropIndex = targetIndexInRow >= 0 ? targetIndexInRow : 0;
+                    const targetIndexInRow = rowCards.findIndex(
+                      (c) => c.id === card.id,
+                    );
+                    const dropIndex =
+                      targetIndexInRow >= 0 ? targetIndexInRow : 0;
                     if (sourceCard.boardSection === rowSection) {
                       onMoveCardWithinSectionToIndex(sourceId, dropIndex);
                     } else {
-                      onMoveCardToSectionAtIndex(sourceId, rowSection, dropIndex);
+                      onMoveCardToSectionAtIndex(
+                        sourceId,
+                        rowSection,
+                        dropIndex,
+                      );
                     }
 
                     setDraggingId(null);
@@ -325,10 +419,20 @@ export default function AdminBoard({
                     <FacultyCard card={card} compact />
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2 px-1 pb-1">
-                    <Button type="button" size="sm" variant="secondary" onClick={() => openEditCard(card)}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => openEditCard(card)}
+                    >
                       Edit
                     </Button>
-                    <Button type="button" size="sm" variant="destructive" onClick={() => onDeleteCard(card.id)}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => setDeleteCardId(card.id)}
+                    >
                       Delete
                     </Button>
                   </div>
@@ -339,220 +443,115 @@ export default function AdminBoard({
         );
       })}
 
-      <Dialog
+      <EditDepartmentFormModal
         open={editRowModalOpen}
         onOpenChange={(next) => {
-          if (!next) {
-            setEditRowModalOpen(false);
-            setEditRowOriginalSection(null);
-            setEditRowError(null);
-          }
+          if (!next) closeEditRowModal();
         }}
-      >
-        <DialogContent maxWidth="lg">
-          <DialogHeader>
-            <DialogTitle>Edit row</DialogTitle>
-          </DialogHeader>
-        <form
-          className="space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!editRowOriginalSection) return;
-            const next = editRowNameDraft.trim();
-            if (!next) {
-              setEditRowError("Row name is required.");
-              return;
-            }
-            if (next !== editRowOriginalSection && rows.includes(next)) {
-              setEditRowError("A row with that name already exists.");
-              return;
-            }
-            onUpdateRowDetail(editRowOriginalSection, next);
-            setEditRowModalOpen(false);
-            setEditRowOriginalSection(null);
-            setEditRowError(null);
-          }}
-        >
-          <div>
-            <Label htmlFor="edit-row-name">Row name</Label>
-            <Input
-              id="edit-row-name"
-              value={editRowNameDraft}
-              onChange={(e) => {
-                setEditRowNameDraft(e.target.value);
-                setEditRowError(null);
-              }}
-              required
-            />
-          </div>
-          {editRowError ? <p className="text-sm text-destructive">{editRowError}</p> : null}
-          <div className="flex flex-wrap gap-2 pt-2">
-            <Button type="submit">Save row</Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setEditRowModalOpen(false);
-                setEditRowOriginalSection(null);
-                setEditRowError(null);
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        </form>
-        </DialogContent>
-      </Dialog>
+        name={editRowNameDraft}
+        onNameChange={(value) => {
+          setEditRowNameDraft(value);
+          setEditRowError(null);
+        }}
+        error={editRowError}
+        onSubmit={onEditRowFormSubmit}
+        onCancel={closeEditRowModal}
+      />
 
-      <Dialog open={deleteRowTarget != null} onOpenChange={(next) => !next && setDeleteRowTarget(null)}>
-        <DialogContent maxWidth="lg">
-          <DialogHeader>
-            <DialogTitle>Delete row?</DialogTitle>
-          </DialogHeader>
-        <div className="space-y-4">
+      <ConfirmModal
+        open={deleteRowTarget != null}
+        onOpenChange={(next) => !next && setDeleteRowTarget(null)}
+        title="Delete row?"
+        maxWidth="lg"
+        actionsOrder="confirm-first"
+        footerClassName="flex-wrap gap-2"
+        confirmLabel="Delete row and cards"
+        confirmVariant="destructive"
+        onConfirm={() => {
+          if (deleteRowTarget) onDeleteRow(deleteRowTarget);
+          setDeleteRowTarget(null);
+        }}
+        description={
           <p className="text-sm text-muted-foreground">
-            This will remove the row <span className="font-medium text-foreground">&quot;{deleteRowTarget}&quot;</span> from the
-            board and permanently delete <span className="font-medium text-foreground">{cardsInDeleteTarget}</span>{" "}
+            This will remove the row{" "}
+            <span className="font-medium text-foreground">
+              &quot;{deleteRowTarget}&quot;
+            </span>{" "}
+            from the board and permanently delete{" "}
+            <span className="font-medium text-foreground">{cardsInDeleteTarget}</span>{" "}
             {cardsInDeleteTarget === 1 ? "card" : "cards"} in that row. This cannot be undone.
           </p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => {
-                if (deleteRowTarget) onDeleteRow(deleteRowTarget);
-                setDeleteRowTarget(null);
-              }}
-            >
-              Delete row and cards
-            </Button>
-            <Button type="button" variant="outline" onClick={() => setDeleteRowTarget(null)}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-        </DialogContent>
-      </Dialog>
+        }
+      />
 
-      <Dialog open={rowModalOpen} onOpenChange={(next) => !next && setRowModalOpen(false)}>
-        <DialogContent maxWidth="lg">
-          <DialogHeader>
-            <DialogTitle>Create New Row</DialogTitle>
-          </DialogHeader>
-        <form
-          className="space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!rowDraft.trim()) return;
-            onAddRow(rowDraft);
-            setRowModalOpen(false);
-          }}
-        >
-          <div>
-            <Label htmlFor="row-name">Row Name</Label>
-            <Input id="row-name" value={rowDraft} onChange={(e) => setRowDraft(e.target.value)} placeholder="e.g. Leadership" required />
-          </div>
-          <div className="pt-2">
-            <Button type="submit">Create Row</Button>
-          </div>
-        </form>
-        </DialogContent>
-      </Dialog>
+      <CreateDepartmentFormModal
+        open={rowModalOpen}
+        onOpenChange={setRowModalOpen}
+        name={rowDraft}
+        onNameChange={setRowDraft}
+        onSubmit={onCreateDepartmentSubmit}
+      />
 
-      <Dialog open={cardModalOpen} onOpenChange={(next) => !next && setCardModalOpen(false)}>
-        <DialogContent maxWidth="lg">
-          <DialogHeader>
-            <DialogTitle>{editingId ? "Edit Faculty Card" : "Add Faculty Card"}</DialogTitle>
-          </DialogHeader>
-        <form className="space-y-3" onSubmit={onSubmitCard}>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <Label htmlFor="card-row">Row</Label>
-              <select
-                id="card-row"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={draft.boardSection}
-                onChange={(e) => setDraft((current) => ({ ...current, boardSection: e.target.value }))}
-              >
-                {rows.map((r, i) => (
-                  <option key={r} value={r}>
-                  {r}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label htmlFor="card-column">Column</Label>
-              <Input
-                id="card-column"
-                type="number"
-                min={1}
-                value={draft.positionIndex}
-                onChange={(e) => setDraft((current) => ({ ...current, positionIndex: Number(e.target.value) }))}
-                required
-              />
-            </div>
-          </div>
+      <FacultyCardFormModal
+        open={cardModalOpen}
+        onOpenChange={setCardModalOpen}
+        rows={rows}
+        draft={draft}
+        onDraftChange={setDraft}
+        isEditing={editingId != null}
+        onSubmit={onSubmitCard}
+      />
 
-          <div>
-            <Label htmlFor="faculty-name">Name</Label>
-            <Input id="faculty-name" value={draft.name} onChange={(e) => setDraft((c) => ({ ...c, name: e.target.value }))} required />
-          </div>
+      <ConfirmModal
+        open={deleteCardId != null}
+        onOpenChange={(open) => !open && setDeleteCardId(null)}
+        title="Delete faculty card?"
+        confirmLabel="Delete card"
+        confirmVariant="destructive"
+        onConfirm={() => {
+          if (deleteCardId) onDeleteCard(deleteCardId);
+          setDeleteCardId(null);
+        }}
+        description={
+          <p className="text-sm text-muted-foreground">
+            Remove{" "}
+            <span className="font-medium text-foreground">
+              {deleteCardTarget?.name ?? "this card"}
+            </span>{" "}
+            from the board. You can undo only by reverting unsaved layout changes, or by re-adding the
+            card.
+          </p>
+        }
+      />
 
-          <div>
-            <Label htmlFor="faculty-role">Role</Label>
-            <Input id="faculty-role" value={draft.role} onChange={(e) => setDraft((c) => ({ ...c, role: e.target.value }))} required />
-          </div>
+      <ConfirmModal
+        open={cardSaveConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open) cancelCardSave();
+        }}
+        title={editingId ? "Save changes to this card?" : "Add this faculty card?"}
+        description={
+          editingId
+            ? "Updates apply to your draft layout. Use Save layout when you are ready to publish."
+            : "The new card is added to your draft layout. Use Save layout when you are ready to publish."
+        }
+        confirmLabel={editingId ? "Save card" : "Create card"}
+        onConfirm={confirmCardSave}
+      />
 
-          <div>
-            <Label htmlFor="faculty-dept">Department</Label>
-            <Input
-              id="faculty-dept"
-              value={draft.department}
-              onChange={(e) => setDraft((c) => ({ ...c, department: e.target.value }))}
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="faculty-photo">Photo URL (optional)</Label>
-            <Textarea
-              id="faculty-photo"
-              rows={3}
-              value={draft.photoUrl}
-              onChange={(e) => setDraft((c) => ({ ...c, photoUrl: e.target.value }))}
-            />
-          </div>
-
-          <details className="rounded-lg border bg-muted/30 p-3">
-            <summary className="cursor-pointer text-sm text-muted-foreground">More details</summary>
-            <div className="mt-3 space-y-3">
-              <div>
-                <Label htmlFor="faculty-email">Email (optional)</Label>
-                <Input
-                  id="faculty-email"
-                  type="email"
-                  value={draft.email}
-                  onChange={(e) => setDraft((c) => ({ ...c, email: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="faculty-phone">Phone (optional)</Label>
-                <Input
-                  id="faculty-phone"
-                  value={draft.phone}
-                  onChange={(e) => setDraft((c) => ({ ...c, phone: e.target.value }))}
-                />
-              </div>
-            </div>
-          </details>
-
-          <div className="pt-2">
-            <Button type="submit">{editingId ? "Save Changes" : "Create Card"}</Button>
-          </div>
-        </form>
-        </DialogContent>
-      </Dialog>
+      <ConfirmModal
+        open={editRowSaveConfirmOpen}
+        onOpenChange={(open) => !open && setEditRowSaveConfirmOpen(false)}
+        title="Save Department changes?"
+        description={
+          <p className="text-sm text-muted-foreground">
+            Rename this Department and update every card in it. This updates your draft until you click{" "}
+            <span className="font-medium text-foreground">Save layout</span>.
+          </p>
+        }
+        confirmLabel="Save row"
+        onConfirm={confirmSaveDepartment}
+      />
     </div>
   );
 }
