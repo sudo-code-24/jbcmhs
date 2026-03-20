@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import type { Announcement } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
-import Modal from "@/components/ui/modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { AnnouncementModalProps } from "./types";
 
 const AnnouncementModal = ({ open, onClose, announcement, longDate }: AnnouncementModalProps) => {
@@ -13,7 +13,11 @@ const AnnouncementModal = ({ open, onClose, announcement, longDate }: Announceme
     announcement.imageUrl?.trim() && !imgError ? announcement.imageUrl.trim()! : "/placeholder.jpg";
 
   return (
-    <Modal open={open} onClose={onClose} title={announcement.title} size="2xl">
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent maxWidth="2xl">
+        <DialogHeader>
+          <DialogTitle>{announcement.title}</DialogTitle>
+        </DialogHeader>
       <div className="mb-5 flex flex-wrap items-center gap-4">
         <Badge variant="outline" className="rounded-full px-3 py-1 text-sm font-semibold">
           {announcement.category}
@@ -37,7 +41,8 @@ const AnnouncementModal = ({ open, onClose, announcement, longDate }: Announceme
       )}
 
       <p className="text-lg sm:text-xl">{announcement.content}</p>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   );
 };
 

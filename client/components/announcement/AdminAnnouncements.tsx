@@ -8,7 +8,7 @@ import {
   deleteAnnouncement,
 } from "@/lib/api";
 import type { Announcement } from "@/lib/types";
-import Modal from "@/components/ui/modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AnnouncementForm, { type AnnouncementFormValues } from "./AnnouncementForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -94,7 +94,11 @@ const AdminAnnouncements = ({ initial }: AdminAnnouncementsProps) => {
         </Button>
       </div>
       {error && <p className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">{error}</p>}
-      <Modal open={open} onClose={resetForm} title={editing ? "Edit announcement" : "Create announcement"}>
+      <Dialog open={open} onOpenChange={(next) => !next && resetForm()}>
+        <DialogContent maxWidth="2xl">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit announcement" : "Create announcement"}</DialogTitle>
+          </DialogHeader>
         <AnnouncementForm
           mode={editing ? "update" : "create"}
           initialValues={
@@ -112,7 +116,8 @@ const AdminAnnouncements = ({ initial }: AdminAnnouncementsProps) => {
           onSubmit={handleSubmit}
           onCancel={editing ? resetForm : undefined}
         />
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       <ul className="space-y-2">
         {list.map((a) => (

@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { createEvent, updateEvent } from "@/lib/api";
 import { EVENT_TYPES, type Event } from "@/lib/types";
-import Modal from "@/components/ui/modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { CardFooter } from "@/components/ui/card";
 import LoadingSpinner from "@/components/ui/loading-spinner";
@@ -261,9 +261,14 @@ const EventForm = ({
           triggerLabel
         )}
       </Button>
-      <Modal open={open} onClose={() => setOpen(false)} title={mode === "update" ? "Edit event" : "Create event"}>
-        {formContent}
-      </Modal>
+      <Dialog open={open} onOpenChange={(next) => !next && setOpen(false)}>
+        <DialogContent maxWidth="2xl">
+          <DialogHeader>
+            <DialogTitle>{mode === "update" ? "Edit event" : "Create event"}</DialogTitle>
+          </DialogHeader>
+          {formContent}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

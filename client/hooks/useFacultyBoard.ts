@@ -1,0 +1,420 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState, type SetStateAction } from "react";
+import initialFacultyCards from "@/data/facultyBoard.initial.json";
+
+export type FacultyCardItem = {
+  id: string;
+  name: string;
+  role: string;
+  department: string;
+  email?: string;
+  phone?: string;
+  photoUrl?: string;
+  boardSection: string;
+  positionIndex: number;
+};
+
+const STORAGE_KEY = "faculty-board-cards-v1";
+
+type FacultyBoardState = {
+  rows: string[];
+  cards: FacultyCardItem[];
+};
+
+const normalizeCards = (cards: FacultyCardItem[]): FacultyCardItem[] =>
+  cards.map((card, index) => ({
+    ...card,
+    positionIndex: Number.isFinite(card.positionIndex) ? card.positionIndex : index + 1,
+  }));
+
+const deriveRowsFromCards = (cards: FacultyCardItem[]) => {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  cards.forEach((card) => {
+    const section = (card.boardSection ?? "").trim();
+    if (!section) return;
+    if (seen.has(section)) return;
+    seen.add(section);
+    ordered.push(section);
+  });
+  return ordered;
+};
+
+export function useFacultyBoard() {
+  const [board, setBoard] = useState<FacultyBoardState>({ rows: [], cards: [] });
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const { rows, cards } = board;
+
+  const setCards = useCallback((updater: SetStateAction<FacultyCardItem[]>) => {
+    setBoard((prev) => ({
+      ...prev,
+      cards: typeof updater === "function" ? updater(prev.cards) : updater,
+    }));
+  }, []);
+
+  const setRows = useCallback((updater: SetStateAction<string[]>) => {
+    setBoard((prev) => ({
+      ...prev,
+      rows: typeof updater === "function" ? updater(prev.rows) : updater,
+    }));
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as
+          | FacultyCardItem[]
+          | {
+              rows?: unknown;
+              cards?: FacultyCardItem[];
+            };
+
+        if (Array.isArray(parsed)) {
+          const normalizedCards = normalizeCards(parsed);
+          setBoard({
+            cards: normalizedCards,
+            rows: deriveRowsFromCards(normalizedCards),
+          });
+        } else {
+          const normalizedCards = normalizeCards((parsed.cards ?? []) as FacultyCardItem[]);
+          const parsedRows = Array.isArray(parsed.rows)
+            ? (parsed.rows as unknown[]).filter((r): r is string => typeof r === "string").map((r) => r.trim())
+            : deriveRowsFromCards(normalizedCards);
+          setBoard({
+            cards: normalizedCards,
+            rows: parsedRows.length > 0 ? parsedRows : deriveRowsFromCards(normalizedCards),
+          });
+        }
+      } else {
+        const normalizedCards = normalizeCards(initialFacultyCards as FacultyCardItem[]);
+        setBoard({
+          cards: normalizedCards,
+          rows: deriveRowsFromCards(normalizedCards),
+        });
+      }
+    } catch {
+      const normalizedCards = normalizeCards(initialFacultyCards as FacultyCardItem[]);
+      setBoard({
+        cards: normalizedCards,
+        rows: deriveRowsFromCards(normalizedCards),
+      });
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        rows,
+        cards,
+      })
+    );
+  }, [cards, isLoaded, rows]);
+
+  const groupedCards = useMemo(() => {
+    const rowOrder = rows.length > 0 ? rows : deriveRowsFromCards(cards);
+    const rowSet = new Set(rowOrder);
+
+    const missingSections = deriveRowsFromCards(cards).filter((s) => !rowSet.has(s));
+    const orderedSections = [...rowOrder, ...missingSections];
+
+    return orderedSections
+      .map((section) => {
+        const sectionCards = cards
+          .filter((card) => card.boardSection === section)
+          .sort((a, b) => a.positionIndex - b.positionIndex);
+        if (sectionCards.length === 0) return null;
+        return { section, cards: sectionCards };
+      })
+      .filter((v): v is { section: string; cards: FacultyCardItem[] } => v !== null);
+  }, [cards, rows]);
+
+  const saveCard = useCallback((nextCard: FacultyCardItem) => {
+    setCards((current) => {
+      const index = current.findIndex((card) => card.id === nextCard.id);
+      if (index === -1) {
+        return [...current, nextCard];
+      }
+      const next = [...current];
+      next[index] = nextCard;
+      return next;
+    });
+  }, [setCards]);
+
+  const addCard = useCallback(
+    (card: Omit<FacultyCardItem, "id">) => {
+      const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `f-${Date.now()}`;
+      saveCard({ ...card, id });
+    },
+    [saveCard]
+  );
+
+  const deleteCard = useCallback(
+    (id: string) => {
+      setCards((current) => current.filter((card) => card.id !== id));
+    },
+    [setCards]
+  );
+
+  const moveCardWithinSection = useCallback(
+    (id: string, direction: "up" | "down") => {
+      setCards((current) => {
+        const card = current.find((item) => item.id === id);
+        if (!card) return current;
+
+        const sectionCards = current
+          .filter((item) => item.boardSection === card.boardSection)
+          .sort((a, b) => a.positionIndex - b.positionIndex);
+
+        const index = sectionCards.findIndex((item) => item.id === id);
+        if (index < 0) return current;
+
+        const swapIndex = direction === "up" ? index - 1 : index + 1;
+        if (swapIndex < 0 || swapIndex >= sectionCards.length) return current;
+
+        const reordered = [...sectionCards];
+        [reordered[index], reordered[swapIndex]] = [reordered[swapIndex], reordered[index]];
+        const byId = new Map(reordered.map((item, idx) => [item.id, idx + 1]));
+
+        return current.map((item) =>
+          item.boardSection === card.boardSection
+            ? { ...item, positionIndex: byId.get(item.id) ?? item.positionIndex }
+            : item
+        );
+      });
+    },
+    [setCards]
+  );
+
+  const moveCardWithinSectionToIndex = useCallback(
+    (id: string, targetIndex: number) => {
+      setCards((current) => {
+        const card = current.find((item) => item.id === id);
+        if (!card) return current;
+
+        const section = card.boardSection;
+        const sectionCards = current
+          .filter((item) => item.boardSection === section)
+          .sort((a, b) => a.positionIndex - b.positionIndex);
+
+        const currentIndex = sectionCards.findIndex((item) => item.id === id);
+        if (currentIndex < 0) return current;
+
+        const clampedIndex = Math.max(0, Math.min(targetIndex, sectionCards.length - 1));
+        if (clampedIndex === currentIndex) return current;
+
+        const reordered = [...sectionCards];
+        const [removed] = reordered.splice(currentIndex, 1);
+        reordered.splice(clampedIndex, 0, removed);
+
+        const byId = new Map(reordered.map((item, idx) => [item.id, idx + 1]));
+
+        return current.map((item) =>
+          item.boardSection === section ? { ...item, positionIndex: byId.get(item.id) ?? item.positionIndex } : item
+        );
+      });
+    },
+    [setCards]
+  );
+
+  const addRow = useCallback(
+    (rowName: string) => {
+      const name = rowName.trim();
+      if (!name) return;
+      setRows((current) => (current.includes(name) ? current : [...current, name]));
+    },
+    [setRows]
+  );
+
+  /** Rename a row (board section) and keep all cards in sync. Fails if `toSection` already exists. */
+  const updateRowDetail = useCallback((fromSection: string, toSection: string) => {
+    const from = fromSection.trim();
+    const to = toSection.trim();
+    if (!from || !to || from === to) return;
+    setBoard((prev) => {
+      if (!prev.rows.includes(from) || prev.rows.includes(to)) return prev;
+      return {
+        rows: prev.rows.map((r) => (r === from ? to : r)),
+        cards: prev.cards.map((c) => (c.boardSection === from ? { ...c, boardSection: to } : c)),
+      };
+    });
+  }, []);
+
+  /** Remove row from order and delete all cards in that section. */
+  const deleteRow = useCallback((section: string) => {
+    const sec = section.trim();
+    if (!sec) return;
+    setBoard((prev) => ({
+      rows: prev.rows.filter((r) => r !== sec),
+      cards: prev.cards.filter((c) => c.boardSection !== sec),
+    }));
+  }, []);
+
+  /** Reorder rows: move the row at `fromIndex` so it sits before the row currently at `beforeIndex` (0…rows.length). */
+  const moveRowToBefore = useCallback(
+    (fromIndex: number, beforeIndex: number) => {
+      setRows((current) => {
+        const n = current.length;
+        if (n <= 1) return current;
+        if (fromIndex < 0 || fromIndex >= n) return current;
+        const clampedBefore = Math.max(0, Math.min(beforeIndex, n));
+        const next = [...current];
+        const [item] = next.splice(fromIndex, 1);
+        let insertAt = clampedBefore;
+        if (fromIndex < clampedBefore) insertAt = clampedBefore - 1;
+        insertAt = Math.max(0, Math.min(insertAt, next.length));
+        next.splice(insertAt, 0, item);
+        return next;
+      });
+    },
+    [setRows]
+  );
+
+  const upsertCardWithOrdering = useCallback(
+    (nextCard: FacultyCardItem) => {
+      setCards((current) => {
+        const existing = current.find((c) => c.id === nextCard.id);
+        const without = current.filter((c) => c.id !== nextCard.id);
+
+        const sourceSection = existing?.boardSection ?? nextCard.boardSection;
+        const destinationSection = nextCard.boardSection.trim();
+
+        const sourceCards = without
+          .filter((c) => c.boardSection === sourceSection)
+          .sort((a, b) => a.positionIndex - b.positionIndex);
+
+        const destinationCards = destinationSection
+          ? without.filter((c) => c.boardSection === destinationSection).sort((a, b) => a.positionIndex - b.positionIndex)
+          : [];
+
+        const insertionIndex = Math.max(0, Math.min((nextCard.positionIndex ?? 1) - 1, destinationCards.length));
+        const cardToInsert: FacultyCardItem = {
+          ...nextCard,
+          boardSection: destinationSection,
+          positionIndex: insertionIndex + 1,
+        };
+
+        const destinationReordered = [...destinationCards];
+        destinationReordered.splice(insertionIndex, 0, cardToInsert);
+
+        const reindexedDestination = destinationReordered.map((c, idx) => ({ ...c, positionIndex: idx + 1 }));
+
+        const reindexedSource =
+          sourceSection === destinationSection
+            ? []
+            : sourceCards.map((c, idx) => ({
+                ...c,
+                positionIndex: idx + 1,
+              }));
+
+        const untouched = without.filter((c) => c.boardSection !== sourceSection && c.boardSection !== destinationSection);
+
+        return [...untouched, ...reindexedSource, ...reindexedDestination];
+      });
+    },
+    [setCards]
+  );
+
+  const addCardToSectionAtIndex = useCallback(
+    (card: Omit<FacultyCardItem, "id">, targetSection: string, targetIndex1Based: number) => {
+      const id =
+        typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `f-${Date.now()}`;
+      upsertCardWithOrdering({
+        ...card,
+        id,
+        boardSection: targetSection.trim(),
+        positionIndex: Math.max(1, Math.floor(targetIndex1Based) || 1),
+      });
+    },
+    [upsertCardWithOrdering]
+  );
+
+  const moveCardToSectionAtIndex = useCallback(
+    (id: string, targetSection: string, targetIndex: number) => {
+      setCards((current) => {
+        const card = current.find((item) => item.id === id);
+        if (!card) return current;
+
+        const sourceSection = card.boardSection;
+        const destinationSection = targetSection.trim() || sourceSection;
+
+        const sourceCards = current
+          .filter((item) => item.boardSection === sourceSection)
+          .sort((a, b) => a.positionIndex - b.positionIndex);
+        const sourceIndex = sourceCards.findIndex((item) => item.id === id);
+        if (sourceIndex < 0) return current;
+
+        const movingCard: FacultyCardItem = { ...card, boardSection: destinationSection };
+        const sourceWithoutCard = sourceCards.filter((item) => item.id !== id);
+
+        if (sourceSection === destinationSection) {
+          const clampedIndex = Math.max(0, Math.min(targetIndex, sourceWithoutCard.length));
+          const reordered = [...sourceWithoutCard];
+          reordered.splice(clampedIndex, 0, movingCard);
+          const byId = new Map(reordered.map((item, idx) => [item.id, idx + 1]));
+
+          return current.map((item) =>
+            item.boardSection === sourceSection
+              ? {
+                  ...(item.id === id ? movingCard : item),
+                  positionIndex: byId.get(item.id) ?? item.positionIndex,
+                }
+              : item
+          );
+        }
+
+        const destinationCards = current
+          .filter((item) => item.boardSection === destinationSection)
+          .sort((a, b) => a.positionIndex - b.positionIndex);
+        const clampedDestinationIndex = Math.max(0, Math.min(targetIndex, destinationCards.length));
+        const destinationWithCard = [...destinationCards];
+        destinationWithCard.splice(clampedDestinationIndex, 0, movingCard);
+
+        const sourceById = new Map(sourceWithoutCard.map((item, idx) => [item.id, idx + 1]));
+        const destinationById = new Map(destinationWithCard.map((item, idx) => [item.id, idx + 1]));
+
+        return current.map((item) => {
+          if (item.id === id) {
+            return {
+              ...movingCard,
+              positionIndex: destinationById.get(id) ?? movingCard.positionIndex,
+            };
+          }
+          if (item.boardSection === sourceSection) {
+            return { ...item, positionIndex: sourceById.get(item.id) ?? item.positionIndex };
+          }
+          if (item.boardSection === destinationSection) {
+            return { ...item, positionIndex: destinationById.get(item.id) ?? item.positionIndex };
+          }
+          return item;
+        });
+      });
+    },
+    [setCards]
+  );
+
+  return {
+    cards,
+    rows,
+    groupedCards,
+    isLoaded,
+    addCard,
+    saveCard,
+    deleteCard,
+    moveCardWithinSection,
+    moveCardWithinSectionToIndex,
+    upsertCardWithOrdering,
+    addRow,
+    updateRowDetail,
+    deleteRow,
+    moveRowToBefore,
+    addCardToSectionAtIndex,
+    moveCardToSectionAtIndex,
+  };
+}

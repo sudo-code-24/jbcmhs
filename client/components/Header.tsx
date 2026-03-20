@@ -12,6 +12,7 @@ const navItems = [
   { href: "/", label: "Home", icon: "home" },
   { href: "/announcements", label: "Bulletin Board", icon: "bell" },
   { href: "/calendar", label: "Calendar", icon: "calendar" },
+  { href: "/faculty-board", label: "Faculty Board", icon: "users" },
   { href: "/admin", label: "Admin", icon: "bookmark" },
 ] as const;
 
@@ -36,6 +37,16 @@ export default function Header() {
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" />
+        </svg>
+      );
+    }
+    if (icon === "users") {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
       );
     }
@@ -92,7 +103,7 @@ export default function Header() {
       </section>
 
       <nav className="fixed inset-x-0 bottom-3 z-50 px-3 md:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-4 rounded-2xl border bg-background/95 p-1.5 shadow-lg backdrop-blur">
+        <div className="mx-auto grid max-w-md grid-cols-5 rounded-2xl border bg-background/95 p-1.5 shadow-lg backdrop-blur">
           {navItems.map(({ href, label, icon }) => {
             const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
 

@@ -139,17 +139,16 @@ const AdminUsers = ({ currentUsername = null }: AdminUsersProps) => {
   }, []);
 
   return (
-    <Card className="space-y-4">
+    <Card className="space-y-4 bg-transparent">
       <CardHeader>
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle>Users</CardTitle>
+        <div className="flex items-center justify-end gap-3">
           <Button type="button" onClick={() => setIsCreateOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" />
             Create User
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent >
         {error ? <p className="mb-3 text-sm text-destructive">{error}</p> : null}
         {success ? (
           <p className="mb-3 text-sm text-emerald-600 dark:text-emerald-400">{success}</p>
