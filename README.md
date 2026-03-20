@@ -58,7 +58,7 @@ Server auth environment variables:
 - `GOOGLE_SHEET_USERS` (default: `users`)
 - `CORS_ALLOWED_ORIGINS` (comma-separated origins allowed to call API)
 - `DEFAULT_ADMIN_EMAIL` (default: `admin@jbcmhs.local`)
-- `DEFAULT_ADMIN_PASSWORD` (default: `admin12345`)
+- `DEFAULT_ADMIN_PASSWORD` (default: `+`)
 - `DEFAULT_RESET_PASSWORD` (default: `jbcmhs_local`)
 - `BCRYPT_SALT_ROUNDS` (default: `12`)
 - `JWT_SECRET` (required)
