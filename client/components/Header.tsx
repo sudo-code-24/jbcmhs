@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { HeaderAuthSection } from "@/components/HeaderAuthSection";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DEFAULT_SCHOOL_INFO } from "@/config/schoolInfo";
@@ -61,9 +62,9 @@ export default function Header() {
   return (
     <>
       <section className="sticky top-0 z-[70] border-b bg-background/95 backdrop-blur">
-        <div className="container-wide flex items-center justify-between gap-4 py-4">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary">
+        <div className="container-wide flex flex-wrap items-center gap-x-4 gap-y-3 py-4">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <Link href="/" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary">
               <img
                 src="/jbcmhs_logo.png"
                 alt="School Logo"
@@ -71,13 +72,13 @@ export default function Header() {
                 style={{ display: "block" }}
               />
             </Link>
-            <div>
-              <p className="text-base font-bold leading-none text-primary">{DEFAULT_SCHOOL_INFO.name}</p>
-              <p className="text-xs text-muted-foreground">{DEFAULT_SCHOOL_INFO.tagline}</p>
+            <div className="min-w-0">
+              <p className="truncate text-base font-bold leading-none text-primary">{DEFAULT_SCHOOL_INFO.name}</p>
+              <p className="truncate text-xs text-muted-foreground">{DEFAULT_SCHOOL_INFO.tagline}</p>
             </div>
           </div>
 
-          <div className="relative z-[70] flex items-center gap-2 pointer-events-auto">
+          <div className="relative z-[70] ml-auto flex flex-shrink-0 flex-wrap items-center justify-end gap-2 pointer-events-auto sm:gap-3">
             <ThemeToggle />
             <nav className="hidden items-center gap-2 text-sm font-medium md:flex">
               {navItems.map(({ href, label }) => {
@@ -98,6 +99,7 @@ export default function Header() {
               })}
               {/* <Button className="rounded-full">Contact</Button> */}
             </nav>
+            <HeaderAuthSection />
           </div>
         </div>
       </section>

@@ -72,21 +72,11 @@ export default async function AdminPage({
   return (
     <div className="container-wide py-3 sm:py-4">
       <div className="page-radial-surface text-foreground dark:text-slate-100">
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4 dark:border-white/[0.06]">
-          <div>
-            <h1 className="text-xl font-bold text-primary dark:text-slate-50 sm:text-2xl">Admin</h1>
-            <p className="mt-2 text-xs text-muted-foreground sm:text-sm">
-              Manage announcements, events, and the faculty board layout.
-            </p>
-          </div>
-          <form action="/api/auth/logout" method="post">
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent dark:border-white/15 dark:bg-slate-900/50 dark:text-slate-100 dark:hover:bg-slate-800/80"
-            >
-              Logout
-            </button>
-          </form>
+        <div className="mb-4 border-b border-border pb-4 dark:border-white/[0.06]">
+          <h1 className="text-xl font-bold text-primary dark:text-slate-50 sm:text-2xl">Admin</h1>
+          <p className="mt-2 text-xs text-muted-foreground sm:text-sm">
+            Manage announcements, events, and the faculty board layout.
+          </p>
         </div>
 
         <AdminDashboardTabs
