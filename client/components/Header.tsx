@@ -43,7 +43,14 @@ export default function Header() {
     }
     if (icon === "users") {
       return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="h-5 w-5 shrink-0"
+          aria-hidden
+        >
           <path strokeLinecap="round" strokeLinejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
           <circle cx="9" cy="7" r="4" />
           <path strokeLinecap="round" strokeLinejoin="round" d="M22 21v-2a4 4 0 0 0-3-3.87" />
@@ -104,25 +111,43 @@ export default function Header() {
         </div>
       </section>
 
-      <nav className="fixed inset-x-0 bottom-3 z-50 px-3 md:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-5 rounded-2xl border bg-background/95 p-1.5 shadow-lg backdrop-blur">
-          {navItems.map(({ href, label, icon }) => {
+      <nav
+        className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 md:hidden"
+        aria-label="Primary"
+      >
+        <div className="mx-auto grid max-w-md grid-cols-5 items-stretch gap-0 rounded-2xl border bg-background/95 p-1.5 shadow-lg backdrop-blur">
+          {navItems.map((item) => {
+            const { href, label, icon } = item;
             const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
 
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex flex-col items-center justify-center rounded-xl px-1 py-1.5 text-[11px] transition ${isActive ? "text-foreground" : "text-muted-foreground"
-                  }`}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={label}
+                title={label}
+                className={cn(
+                  "flex min-h-[4.25rem] min-w-0 flex-col items-center justify-start gap-1 rounded-xl px-0.5 pb-1.5 pt-1.5 text-[10px] transition",
+                  isActive ? "text-foreground" : "text-muted-foreground",
+                )}
               >
                 <span
-                  className={`mb-1.5 flex h-8 w-8 items-center justify-center rounded-full transition ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"
-                    }`}
+                  className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition",
+                    isActive ? "bg-primary/10 text-primary" : "text-muted-foreground",
+                  )}
                 >
                   {renderIcon(icon)}
                 </span>
-                <span className={isActive ? "font-semibold text-foreground" : "font-medium"}>{label}</span>
+                <span
+                  className={cn(
+                    "flex min-h-[2rem] w-full max-w-[4.75rem] flex-col items-center justify-center text-balance text-center text-[10px] leading-tight",
+                    isActive ? "font-semibold text-foreground" : "font-medium",
+                  )}
+                >
+                  <span className="line-clamp-2 w-full px-0.5">{label}</span>
+                </span>
               </Link>
             );
           })}
