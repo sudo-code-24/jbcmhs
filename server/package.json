@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/index.ts",
     "start": "node dist/src/index.js",
-    "build": "tsc"
+    "build": "tsc",
+    "migrate:faculty": "ts-node --transpile-only scripts/migrateFacultyBoardToSheets.ts"
   },
   "dependencies": {
     "@upstash/redis": "^1.37.0",

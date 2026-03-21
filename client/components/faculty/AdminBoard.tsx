@@ -518,8 +518,7 @@ export default function AdminBoard({
             <span className="font-medium text-foreground">
               {deleteCardTarget?.name ?? "this card"}
             </span>{" "}
-            from the board. You can undo only by reverting unsaved layout changes, or by re-adding the
-            card.
+            from the board. This takes effect immediately on the live faculty board.
           </p>
         }
       />
@@ -532,8 +531,8 @@ export default function AdminBoard({
         title={editingId ? "Save changes to this card?" : "Add this faculty card?"}
         description={
           editingId
-            ? "Updates apply to your draft layout. Use Save layout when you are ready to publish."
-            : "The new card is added to your draft layout. Use Save layout when you are ready to publish."
+            ? "Changes are saved to the live faculty board as soon as you confirm."
+            : "The new card is added to the live faculty board as soon as you confirm."
         }
         confirmLabel={editingId ? "Save card" : "Create card"}
         onConfirm={confirmCardSave}
@@ -545,8 +544,8 @@ export default function AdminBoard({
         title="Save Department changes?"
         description={
           <p className="text-sm text-muted-foreground">
-            Rename this Department and update every card in it. This updates your draft until you click{" "}
-            <span className="font-medium text-foreground">Save layout</span>.
+            Rename this department and update every card in it. This is saved to the live faculty board as
+            soon as you confirm.
           </p>
         }
         confirmLabel="Save row"

@@ -30,6 +30,7 @@ You need these values from the key:
    - `events`
    - `school_info`
    - `users`
+   - `faculty`
 3. Set row 1 as headers exactly as shown below.
 
 ### `announcements` headers
@@ -52,6 +53,40 @@ You need these values from the key:
 - `role`: `admin` or `faculty` only
 
 **Migration (existing sheets):** Add columns `passwordUpdated` and `role` after `createdAt`. For existing users, set `passwordUpdated` to `true` if they have already changed their password, else `false`. Set `role` to `admin` or `faculty` (default `faculty`).
+
+### `faculty` headers
+
+`id,name,role,department,email,phone,photoUrl,boardSection,positionIndex,rowsJson`
+
+- The app writes a **meta** row with `id` = `__meta__` and `rowsJson` = JSON array of department section names in display order (e.g. `["Leadership","Academic Departments"]`). Other columns on that row are empty.
+- Each faculty card is one row; `positionIndex` is a number (order within `boardSection`). `rowsJson` is empty on card rows.
+- Optional: leave the tab blank on first deploy — the public site will use bundled sample data until an admin saves from **Admin → Faculty board**.
+
+### Migrate bundled or exported data into the `faculty` sheet
+
+From the `server` directory, with the same `.env` as production (spreadsheet ID + service account):
+
+```bash
+cd server
+npm install
+npm run migrate:faculty
+```
+
+This writes `client/data/facultyBoard.initial.json` into the sheet (meta row + cards). If the tab **already has rows**, the script exits unless you overwrite:
+
+```bash
+npm run migrate:faculty -- --force
+```
+
+To migrate data you previously had only in the browser (`localStorage` key `faculty-board-cards-v1`):
+
+1. Open the admin or faculty site, DevTools → Console, run:
+   `copy(localStorage.getItem('faculty-board-cards-v1'))`
+2. Paste into a file, e.g. `faculty-board-export.json`.
+3. Run:
+   `npm run migrate:faculty -- --force /absolute/path/to/faculty-board-export.json`
+
+The file may be a raw `{ "rows": [...], "cards": [...] }` JSON string pasted and saved, or the parsed object saved as `.json`.
 
 ### Initial `school_info` row example
 
@@ -102,6 +137,7 @@ GOOGLE_SHEET_ANNOUNCEMENTS=announcements
 GOOGLE_SHEET_EVENTS=events
 GOOGLE_SHEET_SCHOOL_INFO=school_info
 GOOGLE_SHEET_USERS=users
+GOOGLE_SHEET_FACULTY=faculty
 DEFAULT_ADMIN_EMAIL=admin@jbcmhs.local
 DEFAULT_ADMIN_PASSWORD=admin12345
 DEFAULT_RESET_PASSWORD=jbcmhs_local
@@ -138,6 +174,7 @@ Quick checks:
 2. `GET /api/announcements` returns array from sheet tab.
 3. `GET /api/events` returns array from sheet tab.
 4. Create/update records via admin UI and confirm sheet updates.
+5. `GET /api/faculty-board` returns `{ rows, cards, sheetEmpty }`; `PUT /api/faculty-board` (admin/faculty JWT) saves the faculty board to the `faculty` tab.
 5. `POST /api/auth/signup` creates a user with a bcrypt hash in `users`.
 6. `POST /api/auth/login` returns `token` + `sessionId` after bcrypt validation.
 7. `POST /api/auth/change-password` updates hashed password after validating current password.

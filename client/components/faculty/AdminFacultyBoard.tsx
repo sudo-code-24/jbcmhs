@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 /**
- * Faculty board builder (localStorage-backed). Rendered from /admin → Faculty board tab.
- * Uses draft mode: changes apply in memory until **Save layout** confirms persist.
+ * Faculty board builder (Google Sheet via API). Rendered from /admin → Faculty board tab.
+ * Card and department create/update/delete and row Move Up/Down save immediately. Only card
+ * drag-and-drop uses **Save card order** to publish.
  */
 export default function AdminFacultyBoard() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,19 +41,31 @@ export default function AdminFacultyBoard() {
   };
 
   const handleSaveLayoutConfirm = () => {
-    commitLayout();
-    setSaveLayoutDialogOpen(false);
+    void (async () => {
+      try {
+        await commitLayout();
+        setSaveLayoutDialogOpen(false);
+      } catch (e) {
+        console.error(e);
+        // pushSavedToServer already surfaced an alert on failure
+      }
+    })();
   };
 
   if (!isLoaded) {
-    return <p className="text-sm text-muted-foreground">Loading faculty board…</p>;
+    return (
+      <p className="text-sm text-muted-foreground">Loading faculty board…</p>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="max-w-xl flex-1 space-y-2">
-          <Label htmlFor="admin-faculty-search" className="text-muted-foreground">
+          <Label
+            htmlFor="admin-faculty-search"
+            className="text-muted-foreground"
+          >
             Search faculty (builder view)
           </Label>
           <Input
@@ -64,23 +77,27 @@ export default function AdminFacultyBoard() {
             autoComplete="off"
             aria-describedby="admin-faculty-search-hint"
           />
-          <p id="admin-faculty-search-hint" className="text-xs text-muted-foreground">
-            Hides cards that don&apos;t match in each row; full row layout and ordering tools stay available.
+          <p
+            id="admin-faculty-search-hint"
+            className="text-xs text-muted-foreground"
+          >
+            Hides cards that don&apos;t match in each row; full row layout and
+            ordering tools stay available.
           </p>
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:items-end">
           {isLayoutDirty ? (
-            <p className="text-xs font-medium text-amber-600 dark:text-amber-400">Unsaved layout changes</p>
-          ) : (
-            <p className="text-xs text-muted-foreground">Layout matches last saved</p>
-          )}
+            <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+              You have changes pending to be save
+            </p>
+          ) : null}
           <Button
             type="button"
             variant="default"
             disabled={!isLayoutDirty}
             onClick={() => setSaveLayoutDialogOpen(true)}
           >
-            Save layout
+            Save Changes
           </Button>
         </div>
       </div>
@@ -103,19 +120,18 @@ export default function AdminFacultyBoard() {
       <ConfirmModal
         open={saveLayoutDialogOpen}
         onOpenChange={setSaveLayoutDialogOpen}
-        title="Save layout?"
+        title="Save your changes?"
         preventDismiss
         showClose={false}
         footerClassName="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"
-        cancelLabel="Cancel & revert"
-        confirmLabel="OK — Save layout"
+        cancelLabel="Cancel & revert changes"
+        confirmLabel="Save"
         onCancel={handleSaveLayoutCancel}
         onConfirm={handleSaveLayoutConfirm}
         description={
           <p className="text-sm text-muted-foreground">
-            This publishes your faculty board changes for visitors on the public Faculty Board page. If
-            you choose <span className="font-medium text-foreground">Cancel</span>, all edits since the last
-            save will be reverted.
+            You moved some cards around. Do you want to keep the new order for
+            everyone?
           </p>
         }
       />

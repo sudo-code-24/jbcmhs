@@ -2,22 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import initialFacultyCards from "@/data/facultyBoard.initial.json";
+import type { FacultyCardItem } from "@/lib/types";
+import { getFacultyBoard, saveFacultyBoard } from "@/lib/api";
 
-export type FacultyCardItem = {
-  id: string;
-  name: string;
-  role: string;
-  department: string;
-  email?: string;
-  phone?: string;
-  photoUrl?: string;
-  boardSection: string;
-  positionIndex: number;
-};
+export type { FacultyCardItem };
 
-const STORAGE_KEY = "faculty-board-cards-v1";
-
-/** Custom event + storage — public board listens to pick up admin saves */
+/** Dispatched after admin saves; public board refetches from API. */
 export const FACULTY_BOARD_STORAGE_EVENT = "faculty-board-storage-updated";
 
 type FacultyBoardState = {
@@ -27,8 +17,9 @@ type FacultyBoardState = {
 
 export type UseFacultyBoardOptions = {
   /**
-   * When `true` (default), board writes to localStorage on every change (public / legacy).
-   * When `false` (admin builder), changes are draft-only until `commitLayout()`.
+   * When `true` (default), public board refetches periodically and on sync events.
+ * When `false` (admin builder), card/department CRUD and row order (Move Up/Down) persist immediately;
+ * only card drag-and-drop reordering stays local until `commitLayout()` saves to the server.
    */
   autoPersist?: boolean;
 };
@@ -65,45 +56,7 @@ function boardEquals(a: FacultyBoardState, b: FacultyBoardState): boolean {
   );
 }
 
-function parseFacultyBoardJson(raw: string): FacultyBoardState | null {
-  try {
-    const parsed = JSON.parse(raw) as
-      | FacultyCardItem[]
-      | {
-          rows?: unknown;
-          cards?: FacultyCardItem[];
-        };
-
-    if (Array.isArray(parsed)) {
-      const normalizedCards = normalizeCards(parsed);
-      return {
-        cards: normalizedCards,
-        rows: deriveRowsFromCards(normalizedCards),
-      };
-    }
-    const normalizedCards = normalizeCards((parsed.cards ?? []) as FacultyCardItem[]);
-    const parsedRows = Array.isArray(parsed.rows)
-      ? (parsed.rows as unknown[]).filter((r): r is string => typeof r === "string").map((r) => r.trim())
-      : deriveRowsFromCards(normalizedCards);
-    return {
-      cards: normalizedCards,
-      rows: parsedRows.length > 0 ? parsedRows : deriveRowsFromCards(normalizedCards),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function loadBoardFromStorage(): FacultyBoardState {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = parseFacultyBoardJson(raw);
-      if (parsed) return parsed;
-    }
-  } catch {
-    /* use seed */
-  }
+function seedBoardFromJson(): FacultyBoardState {
   const normalizedCards = normalizeCards(initialFacultyCards as FacultyCardItem[]);
   return {
     cards: normalizedCards,
@@ -136,11 +89,27 @@ export function useFacultyBoard(options: UseFacultyBoardOptions = {}) {
     }));
   }, []);
 
-  useEffect(() => {
-    const next = loadBoardFromStorage();
-    setBoard(next);
-    setIsLoaded(true);
+  const loadFromApi = useCallback(async (options?: { isInitial?: boolean }) => {
+    try {
+      const data = await getFacultyBoard();
+      if (data.sheetEmpty) {
+        setBoard(seedBoardFromJson());
+      } else {
+        setBoard({
+          rows: data.rows,
+          cards: normalizeCards(data.cards),
+        });
+      }
+    } catch {
+      setBoard(seedBoardFromJson());
+    } finally {
+      if (options?.isInitial) setIsLoaded(true);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadFromApi({ isInitial: true });
+  }, [loadFromApi]);
 
   /** Draft mode: snapshot last-saved board once after hydration */
   useEffect(() => {
@@ -150,45 +119,66 @@ export function useFacultyBoard(options: UseFacultyBoardOptions = {}) {
     setSavedVersion((v) => v + 1);
   }, [isLoaded, autoPersist, rows, cards]);
 
-  useEffect(() => {
-    if (!isLoaded || !autoPersist) return;
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        rows,
-        cards,
-      })
-    );
-  }, [cards, isLoaded, rows, autoPersist]);
-
-  /** Public board: reload when admin commits or other tab updates storage */
+  /** Public board: refetch when admin saves (same tab) or another tab broadcasts */
   useEffect(() => {
     if (!autoPersist) return;
-    const syncFromStorage = () => {
+    const sync = () => {
+      void loadFromApi();
+    };
+    window.addEventListener(FACULTY_BOARD_STORAGE_EVENT, sync);
+    let bc: BroadcastChannel | undefined;
+    try {
+      bc = new BroadcastChannel("faculty-board");
+      bc.onmessage = sync;
+    } catch {
+      /* ignore */
+    }
+    const interval = window.setInterval(sync, 90_000);
+    return () => {
+      window.removeEventListener(FACULTY_BOARD_STORAGE_EVENT, sync);
+      bc?.close();
+      window.clearInterval(interval);
+    };
+  }, [autoPersist, loadFromApi]);
+
+  const pushSavedToServer = useCallback(async (state: FacultyBoardState): Promise<boolean> => {
+    try {
+      await saveFacultyBoard(state);
+      savedBoardRef.current = cloneBoard(state);
+      setSavedVersion((v) => v + 1);
+      window.dispatchEvent(new CustomEvent(FACULTY_BOARD_STORAGE_EVENT));
       try {
-        const raw = window.localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const parsed = parseFacultyBoardJson(raw);
-        if (parsed) setBoard(parsed);
+        const channel = new BroadcastChannel("faculty-board");
+        channel.postMessage("sync");
+        channel.close();
       } catch {
         /* ignore */
       }
-    };
-    window.addEventListener(FACULTY_BOARD_STORAGE_EVENT, syncFromStorage);
-    window.addEventListener("storage", syncFromStorage);
-    return () => {
-      window.removeEventListener(FACULTY_BOARD_STORAGE_EVENT, syncFromStorage);
-      window.removeEventListener("storage", syncFromStorage);
-    };
-  }, [autoPersist]);
+      return true;
+    } catch (e) {
+      console.error(e);
+      window.alert(
+        e instanceof Error ? e.message : "Could not save the faculty board. Please try again."
+      );
+      return false;
+    }
+  }, []);
 
-  const commitLayout = useCallback(() => {
-    const snapshot = cloneBoard({ rows, cards });
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
-    savedBoardRef.current = snapshot;
-    setSavedVersion((v) => v + 1);
-    window.dispatchEvent(new CustomEvent(FACULTY_BOARD_STORAGE_EVENT));
-  }, [rows, cards]);
+  /** Admin: persist after CRUD; skipped when public `autoPersist` (no admin mutations). */
+  const schedulePersist = useCallback(
+    (next: FacultyBoardState) => {
+      if (autoPersist) return;
+      queueMicrotask(() => {
+        void pushSavedToServer(next);
+      });
+    },
+    [autoPersist, pushSavedToServer]
+  );
+
+  const commitLayout = useCallback(async () => {
+    const ok = await pushSavedToServer(cloneBoard({ rows, cards }));
+    if (!ok) throw new Error("Save failed");
+  }, [rows, cards, pushSavedToServer]);
 
   const revertLayout = useCallback(() => {
     const snap = savedBoardRef.current;
@@ -243,9 +233,16 @@ export function useFacultyBoard(options: UseFacultyBoardOptions = {}) {
 
   const deleteCard = useCallback(
     (id: string) => {
-      setCards((current) => current.filter((card) => card.id !== id));
+      setBoard((prev) => {
+        const next: FacultyBoardState = {
+          rows: [...prev.rows],
+          cards: prev.cards.filter((card) => card.id !== id),
+        };
+        schedulePersist(next);
+        return next;
+      });
     },
-    [setCards]
+    [schedulePersist]
   );
 
   const moveCardWithinSection = useCallback(
@@ -313,42 +310,63 @@ export function useFacultyBoard(options: UseFacultyBoardOptions = {}) {
     (rowName: string) => {
       const name = rowName.trim();
       if (!name) return;
-      setRows((current) => (current.includes(name) ? current : [...current, name]));
+      setBoard((prev) => {
+        if (prev.rows.includes(name)) return prev;
+        const next: FacultyBoardState = {
+          rows: [...prev.rows, name],
+          cards: prev.cards,
+        };
+        schedulePersist(next);
+        return next;
+      });
     },
-    [setRows]
+    [schedulePersist]
   );
 
   /** Rename a row (board section) and keep all cards in sync. Fails if `toSection` already exists. */
-  const updateRowDetail = useCallback((fromSection: string, toSection: string) => {
-    const from = fromSection.trim();
-    const to = toSection.trim();
-    if (!from || !to || from === to) return;
-    setBoard((prev) => {
-      if (!prev.rows.includes(from) || prev.rows.includes(to)) return prev;
-      return {
-        rows: prev.rows.map((r) => (r === from ? to : r)),
-        cards: prev.cards.map((c) => (c.boardSection === from ? { ...c, boardSection: to } : c)),
-      };
-    });
-  }, []);
+  const updateRowDetail = useCallback(
+    (fromSection: string, toSection: string) => {
+      const from = fromSection.trim();
+      const to = toSection.trim();
+      if (!from || !to || from === to) return;
+      setBoard((prev) => {
+        if (!prev.rows.includes(from) || prev.rows.includes(to)) return prev;
+        const next: FacultyBoardState = {
+          rows: prev.rows.map((r) => (r === from ? to : r)),
+          cards: prev.cards.map((c) => (c.boardSection === from ? { ...c, boardSection: to } : c)),
+        };
+        schedulePersist(next);
+        return next;
+      });
+    },
+    [schedulePersist]
+  );
 
   /** Remove row from order and delete all cards in that section. */
-  const deleteRow = useCallback((section: string) => {
-    const sec = section.trim();
-    if (!sec) return;
-    setBoard((prev) => ({
-      rows: prev.rows.filter((r) => r !== sec),
-      cards: prev.cards.filter((c) => c.boardSection !== sec),
-    }));
-  }, []);
+  const deleteRow = useCallback(
+    (section: string) => {
+      const sec = section.trim();
+      if (!sec) return;
+      setBoard((prev) => {
+        const next: FacultyBoardState = {
+          rows: prev.rows.filter((r) => r !== sec),
+          cards: prev.cards.filter((c) => c.boardSection !== sec),
+        };
+        schedulePersist(next);
+        return next;
+      });
+    },
+    [schedulePersist]
+  );
 
   /** Reorder rows: move the row at `fromIndex` so it sits before the row currently at `beforeIndex` (0…rows.length). */
   const moveRowToBefore = useCallback(
     (fromIndex: number, beforeIndex: number) => {
-      setRows((current) => {
+      setBoard((prev) => {
+        const current = prev.rows;
         const n = current.length;
-        if (n <= 1) return current;
-        if (fromIndex < 0 || fromIndex >= n) return current;
+        if (n <= 1) return prev;
+        if (fromIndex < 0 || fromIndex >= n) return prev;
         const clampedBefore = Math.max(0, Math.min(beforeIndex, n));
         const next = [...current];
         const [item] = next.splice(fromIndex, 1);
@@ -356,15 +374,18 @@ export function useFacultyBoard(options: UseFacultyBoardOptions = {}) {
         if (fromIndex < clampedBefore) insertAt = clampedBefore - 1;
         insertAt = Math.max(0, Math.min(insertAt, next.length));
         next.splice(insertAt, 0, item);
-        return next;
+        const state: FacultyBoardState = { rows: next, cards: prev.cards };
+        schedulePersist(state);
+        return state;
       });
     },
-    [setRows]
+    [schedulePersist]
   );
 
   const upsertCardWithOrdering = useCallback(
     (nextCard: FacultyCardItem) => {
-      setCards((current) => {
+      setBoard((prev) => {
+        const current = prev.cards;
         const existing = current.find((c) => c.id === nextCard.id);
         const without = current.filter((c) => c.id !== nextCard.id);
 
@@ -401,10 +422,13 @@ export function useFacultyBoard(options: UseFacultyBoardOptions = {}) {
 
         const untouched = without.filter((c) => c.boardSection !== sourceSection && c.boardSection !== destinationSection);
 
-        return [...untouched, ...reindexedSource, ...reindexedDestination];
+        const nextCards = [...untouched, ...reindexedSource, ...reindexedDestination];
+        const next: FacultyBoardState = { rows: [...prev.rows], cards: nextCards };
+        schedulePersist(next);
+        return next;
       });
     },
-    [setCards]
+    [schedulePersist]
   );
 
   const addCardToSectionAtIndex = useCallback(
