@@ -3,7 +3,7 @@
 import { useState } from "react";
 import AdminBoard from "@/components/faculty/AdminBoard";
 import { useFacultyBoard } from "@/hooks/useFacultyBoard";
-import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -21,6 +21,7 @@ export default function AdminFacultyBoard() {
     cards,
     rows,
     isLoaded,
+    isSaving,
     isLayoutDirty,
     commitLayout,
     revertLayout,
@@ -91,14 +92,15 @@ export default function AdminFacultyBoard() {
               You have changes pending to be save
             </p>
           ) : null}
-          <Button
-            type="button"
+          <LoadingButton
             variant="default"
-            disabled={!isLayoutDirty}
+            disabled={!isLayoutDirty || isSaving}
+            loading={isSaving && isLayoutDirty}
             onClick={() => setSaveLayoutDialogOpen(true)}
+            className="min-w-[10rem]"
           >
             Save Changes
-          </Button>
+          </LoadingButton>
         </div>
       </div>
 
@@ -106,6 +108,7 @@ export default function AdminFacultyBoard() {
         onDeleteCard={deleteCard}
         rows={rows}
         cards={cards}
+        isSaving={isSaving}
         searchQuery={searchQuery}
         onAddRow={addRow}
         onAddCardToSectionAtIndex={addCardToSectionAtIndex}
@@ -128,6 +131,7 @@ export default function AdminFacultyBoard() {
         confirmLabel="Save"
         onCancel={handleSaveLayoutCancel}
         onConfirm={handleSaveLayoutConfirm}
+        confirmLoading={isSaving}
         description={
           <p className="text-sm text-muted-foreground">
             You moved some cards around. Do you want to keep the new order for

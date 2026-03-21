@@ -71,7 +71,11 @@ export function useFacultyBoard(options: UseFacultyBoardOptions = {}) {
   const [isLoaded, setIsLoaded] = useState(false);
   /** Bumps when `commitLayout` runs so `isLayoutDirty` recomputes */
   const [savedVersion, setSavedVersion] = useState(0);
+  /** Active server saves (persist + commitLayout) for admin loading UI */
+  const [savingCount, setSavingCount] = useState(0);
   const savedBoardRef = useRef<FacultyBoardState | null>(null);
+
+  const isSaving = savingCount > 0;
 
   const { rows, cards } = board;
 
@@ -168,16 +172,26 @@ export function useFacultyBoard(options: UseFacultyBoardOptions = {}) {
   const schedulePersist = useCallback(
     (next: FacultyBoardState) => {
       if (autoPersist) return;
-      queueMicrotask(() => {
-        void pushSavedToServer(next);
-      });
+      void (async () => {
+        setSavingCount((c) => c + 1);
+        try {
+          await pushSavedToServer(next);
+        } finally {
+          setSavingCount((c) => Math.max(0, c - 1));
+        }
+      })();
     },
     [autoPersist, pushSavedToServer]
   );
 
   const commitLayout = useCallback(async () => {
-    const ok = await pushSavedToServer(cloneBoard({ rows, cards }));
-    if (!ok) throw new Error("Save failed");
+    setSavingCount((c) => c + 1);
+    try {
+      const ok = await pushSavedToServer(cloneBoard({ rows, cards }));
+      if (!ok) throw new Error("Save failed");
+    } finally {
+      setSavingCount((c) => Math.max(0, c - 1));
+    }
   }, [rows, cards, pushSavedToServer]);
 
   const revertLayout = useCallback(() => {
@@ -514,6 +528,7 @@ export function useFacultyBoard(options: UseFacultyBoardOptions = {}) {
     rows,
     groupedCards,
     isLoaded,
+    isSaving,
     isLayoutDirty,
     commitLayout,
     revertLayout,

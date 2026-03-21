@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -18,6 +18,8 @@ export type CreateDepartmentFormModalProps = {
   name: string;
   onNameChange: (name: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  /** Disables submit while faculty board is saving to the server */
+  isBusy?: boolean;
 };
 
 export function CreateDepartmentFormModal({
@@ -26,9 +28,16 @@ export function CreateDepartmentFormModal({
   name,
   onNameChange,
   onSubmit,
+  isBusy = false,
 }: CreateDepartmentFormModalProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && isBusy) return;
+        onOpenChange(next);
+      }}
+    >
       <DialogContent maxWidth="lg">
         <DialogHeader>
           <DialogTitle>Create New Department</DialogTitle>
@@ -44,10 +53,13 @@ export function CreateDepartmentFormModal({
               onChange={(e) => onNameChange(e.target.value)}
               placeholder="e.g. Leadership"
               required
+              disabled={isBusy}
             />
           </div>
           <div className="flex shrink-0 flex-col gap-2 items-end">
-            <Button type="submit">Save</Button>
+            <LoadingButton type="submit" loading={isBusy}>
+              Save
+            </LoadingButton>
           </div>
         </form>
       </DialogContent>

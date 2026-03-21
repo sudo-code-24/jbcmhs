@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useRef, useState } from "react";
 import type { FacultyCardItem } from "@/hooks/useFacultyBoard";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { matchesFacultySearch } from "@/lib/facultyBoardSearch";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,8 @@ type AdminBoardProps = {
   onUpdateRowDetail: (fromSection: string, toSection: string) => void;
   onDeleteRow: (section: string) => void;
   searchQuery?: string;
+  /** True while faculty board data is saving to the server */
+  isSaving?: boolean;
 };
 
 export default function AdminBoard({
@@ -51,6 +54,7 @@ export default function AdminBoard({
   onUpdateRowDetail,
   onDeleteRow,
   searchQuery = "",
+  isSaving = false,
 }: AdminBoardProps) {
   const [cardModalOpen, setCardModalOpen] = useState(false);
   const [rowModalOpen, setRowModalOpen] = useState(false);
@@ -236,16 +240,16 @@ export default function AdminBoard({
           Faculty Board Builder
         </h2>
         <div className="flex gap-2">
-          <Button
-            type="button"
+          <LoadingButton
             variant="secondary"
+            loading={isSaving}
             onClick={() => {
               setRowDraft("");
               setRowModalOpen(true);
             }}
           >
             Create New Department
-          </Button>
+          </LoadingButton>
         </div>
       </div>
 
@@ -281,12 +285,12 @@ export default function AdminBoard({
               overRow === rowSection && draggingId && "ring-2 ring-primary/60",
             )}
             onDragOver={(e) => {
-              if (!draggingId) return;
+              if (isSaving || !draggingId) return;
               e.preventDefault();
               setOverRow(rowSection);
             }}
             onDragLeave={(e) => {
-              if (!draggingId) return;
+              if (isSaving || !draggingId) return;
               if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                 setOverRow((prev) => (prev === rowSection ? null : prev));
               }
@@ -294,6 +298,7 @@ export default function AdminBoard({
             onDrop={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              if (isSaving) return;
               const raw =
                 e.dataTransfer.getData("text/plain") || draggingId || "";
               const sourceId = raw || draggingId;
@@ -319,7 +324,7 @@ export default function AdminBoard({
                   type="button"
                   size="sm"
                   variant="outline"
-                  disabled={rowIdx <= 0}
+                  disabled={isSaving || rowIdx <= 0}
                   onClick={() => onMoveRowToBefore(rowIdx, rowIdx - 1)}
                 >
                   Move Up ↑
@@ -328,7 +333,7 @@ export default function AdminBoard({
                   type="button"
                   size="sm"
                   variant="outline"
-                  disabled={rowIdx >= rows.length - 1}
+                  disabled={isSaving || rowIdx >= rows.length - 1}
                   onClick={() => onMoveRowToBefore(rowIdx, rowIdx + 2)}
                 >
                   Move Down ↓
@@ -337,6 +342,7 @@ export default function AdminBoard({
                   type="button"
                   size="sm"
                   variant="outline"
+                  disabled={isSaving}
                   onClick={() => openEditRow(rowSection)}
                 >
                   Edit Department
@@ -345,6 +351,7 @@ export default function AdminBoard({
                   type="button"
                   size="sm"
                   variant="destructive"
+                  disabled={isSaving}
                   onClick={() => setDeleteRowTarget(rowSection)}
                 >
                   Delete Department
@@ -353,6 +360,7 @@ export default function AdminBoard({
                   type="button"
                   size="sm"
                   variant="secondary"
+                  disabled={isSaving}
                   onClick={() => openCreateCardForRow(rowSection)}
                 >
                   Add New Staff
@@ -365,8 +373,9 @@ export default function AdminBoard({
                 <div
                   key={card.id}
                   className={`rounded-xl ${overId === card.id ? "ring-2 ring-primary/60" : ""}`}
-                  draggable
+                  draggable={!isSaving}
                   onDragStart={(e) => {
+                    if (isSaving) return;
                     e.dataTransfer.setData("text/plain", card.id);
                     e.dataTransfer.effectAllowed = "move";
                     setDraggingId(card.id);
@@ -379,7 +388,7 @@ export default function AdminBoard({
                     setOverRow(null);
                   }}
                   onDragOver={(e) => {
-                    if (!draggingId) return;
+                    if (isSaving || !draggingId) return;
                     e.preventDefault();
                     setOverId(card.id);
                     setOverRow(rowSection);
@@ -387,6 +396,7 @@ export default function AdminBoard({
                   onDrop={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    if (isSaving) return;
                     const raw =
                       e.dataTransfer.getData("text/plain") || draggingId || "";
                     const sourceId = raw || draggingId;
@@ -423,6 +433,7 @@ export default function AdminBoard({
                       type="button"
                       size="sm"
                       variant="secondary"
+                      disabled={isSaving}
                       onClick={() => openEditCard(card)}
                     >
                       Edit
@@ -431,6 +442,7 @@ export default function AdminBoard({
                       type="button"
                       size="sm"
                       variant="destructive"
+                      disabled={isSaving}
                       onClick={() => setDeleteCardId(card.id)}
                     >
                       Delete
@@ -456,6 +468,7 @@ export default function AdminBoard({
         error={editRowError}
         onSubmit={onEditRowFormSubmit}
         onCancel={closeEditRowModal}
+        isBusy={isSaving}
       />
 
       <ConfirmModal
@@ -467,6 +480,7 @@ export default function AdminBoard({
         footerClassName="flex-wrap gap-2"
         confirmLabel="Delete row and cards"
         confirmVariant="destructive"
+        confirmLoading={isSaving}
         onConfirm={() => {
           if (deleteRowTarget) onDeleteRow(deleteRowTarget);
           setDeleteRowTarget(null);
@@ -490,6 +504,7 @@ export default function AdminBoard({
         name={rowDraft}
         onNameChange={setRowDraft}
         onSubmit={onCreateDepartmentSubmit}
+        isBusy={isSaving}
       />
 
       <FacultyCardFormModal
@@ -500,6 +515,7 @@ export default function AdminBoard({
         onDraftChange={setDraft}
         isEditing={editingId != null}
         onSubmit={onSubmitCard}
+        isBusy={isSaving}
       />
 
       <ConfirmModal
@@ -508,6 +524,7 @@ export default function AdminBoard({
         title="Delete faculty card?"
         confirmLabel="Delete card"
         confirmVariant="destructive"
+        confirmLoading={isSaving}
         onConfirm={() => {
           if (deleteCardId) onDeleteCard(deleteCardId);
           setDeleteCardId(null);
@@ -535,6 +552,7 @@ export default function AdminBoard({
             : "The new card is added to the live faculty board as soon as you confirm."
         }
         confirmLabel={editingId ? "Save card" : "Create card"}
+        confirmLoading={isSaving}
         onConfirm={confirmCardSave}
       />
 
@@ -549,6 +567,7 @@ export default function AdminBoard({
           </p>
         }
         confirmLabel="Save row"
+        confirmLoading={isSaving}
         onConfirm={confirmSaveDepartment}
       />
     </div>

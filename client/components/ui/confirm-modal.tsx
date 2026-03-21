@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,8 @@ export type ConfirmModalProps = {
   contentClassName?: string;
   /** Button order in the footer (see `DialogFooter` flex rules on small vs large screens) */
   actionsOrder?: "cancel-first" | "confirm-first";
+  /** When true, confirm shows a spinner and both actions are disabled (e.g. during async API). */
+  confirmLoading?: boolean;
 };
 
 export function ConfirmModal({
@@ -56,22 +59,24 @@ export function ConfirmModal({
   footerClassName,
   contentClassName,
   actionsOrder = "cancel-first",
+  confirmLoading = false,
 }: ConfirmModalProps) {
   const handleCancel = () => {
+    if (confirmLoading) return;
     if (onCancel) onCancel();
     else onOpenChange(false);
   };
 
   const cancelButton = (
-    <Button type="button" variant={cancelVariant} onClick={handleCancel}>
+    <Button type="button" variant={cancelVariant} onClick={handleCancel} disabled={confirmLoading}>
       {cancelLabel}
     </Button>
   );
 
   const confirmButton = (
-    <Button type="button" variant={confirmVariant} onClick={onConfirm}>
+    <LoadingButton variant={confirmVariant} onClick={onConfirm} loading={confirmLoading}>
       {confirmLabel}
-    </Button>
+    </LoadingButton>
   );
 
   const footerActions =
@@ -88,7 +93,13 @@ export function ConfirmModal({
     );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && confirmLoading) return;
+        onOpenChange(next);
+      }}
+    >
       <DialogContent
         maxWidth={maxWidth}
         showClose={showClose}

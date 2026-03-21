@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +27,7 @@ export type FacultyCardFormModalProps = {
   ) => void;
   isEditing: boolean;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  isBusy?: boolean;
 };
 
 export function FacultyCardFormModal({
@@ -37,9 +38,16 @@ export function FacultyCardFormModal({
   onDraftChange,
   isEditing,
   onSubmit,
+  isBusy = false,
 }: FacultyCardFormModalProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && isBusy) return;
+        onOpenChange(next);
+      }}
+    >
       <DialogContent maxWidth="lg">
         <DialogHeader>
           <DialogTitle>
@@ -47,6 +55,7 @@ export function FacultyCardFormModal({
           </DialogTitle>
         </DialogHeader>
         <form className="space-y-4" onSubmit={onSubmit}>
+          <fieldset disabled={isBusy} className="min-w-0 space-y-4 border-0 p-0">
           <div className={FACULTY_MODAL_FIELD_GROUP_CLASS}>
             <Label htmlFor="card-row" className="text-foreground">
               Department
@@ -159,8 +168,11 @@ export function FacultyCardFormModal({
             </div>
           </details>
           <div className="flex shrink-0 flex-col gap-2 sm:items-end">
-            <Button type="submit">{isEditing ? "Save Changes" : "Save"}</Button>
+            <LoadingButton type="submit" loading={isBusy}>
+              {isEditing ? "Save Changes" : "Save"}
+            </LoadingButton>
           </div>
+          </fieldset>
         </form>
       </DialogContent>
     </Dialog>
