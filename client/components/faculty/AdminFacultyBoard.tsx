@@ -125,10 +125,7 @@ export default function AdminFacultyBoard() {
         onOpenChange={setSaveLayoutDialogOpen}
         title="Save your changes?"
         preventDismiss
-        showClose={false}
         footerClassName="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"
-        cancelLabel="Cancel & revert changes"
-        confirmLabel="Save"
         onCancel={handleSaveLayoutCancel}
         onConfirm={handleSaveLayoutConfirm}
         confirmLoading={isSaving}

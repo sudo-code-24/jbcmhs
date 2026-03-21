@@ -19,8 +19,6 @@ export type ConfirmModalProps = {
   title: string;
   /** Primary message; use a `<p className="text-sm text-muted-foreground">` or fragments as needed */
   description?: React.ReactNode;
-  confirmLabel: string;
-  cancelLabel?: string;
   confirmVariant?: React.ComponentProps<typeof Button>["variant"];
   cancelVariant?: React.ComponentProps<typeof Button>["variant"];
   onConfirm: () => void;
@@ -32,7 +30,7 @@ export type ConfirmModalProps = {
   maxWidth?: DialogMaxWidth;
   /** When true, overlay click and Escape do not close the dialog */
   preventDismiss?: boolean;
-  /** Corner close control on `DialogContent` (defaults to true) */
+  /** Corner close control on `DialogContent` (defaults to false; use title/description for context) */
   showClose?: boolean;
   footerClassName?: string;
   contentClassName?: string;
@@ -47,15 +45,13 @@ export function ConfirmModal({
   onOpenChange,
   title,
   description,
-  confirmLabel,
-  cancelLabel = "Cancel",
   confirmVariant = "default",
   cancelVariant = "outline",
   onConfirm,
   onCancel,
   maxWidth = "md",
   preventDismiss = false,
-  showClose = true,
+  showClose = false,
   footerClassName,
   contentClassName,
   actionsOrder = "cancel-first",
@@ -69,13 +65,13 @@ export function ConfirmModal({
 
   const cancelButton = (
     <Button type="button" variant={cancelVariant} onClick={handleCancel} disabled={confirmLoading}>
-      {cancelLabel}
+      Cancel
     </Button>
   );
 
   const confirmButton = (
     <LoadingButton variant={confirmVariant} onClick={onConfirm} loading={confirmLoading}>
-      {confirmLabel}
+      Confirm
     </LoadingButton>
   );
 
