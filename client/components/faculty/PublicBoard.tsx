@@ -68,6 +68,8 @@ export default function PublicBoard({ groupedCards, minimal = false }: PublicBoa
         <FacultyListView
           principalCards={principalCards}
           sectionGroups={sectionGroups}
+          collapsedDeptIndices={collapsedDeptIndices}
+          onToggleDepartment={toggleDepartment}
           onSelectCard={openDetail}
         />
       ) : (

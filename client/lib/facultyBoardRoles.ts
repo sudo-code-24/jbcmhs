@@ -11,3 +11,13 @@ export function isLeadershipHighlight(role: string): boolean {
   const normalized = role.toLowerCase();
   return normalized.includes("principal") || normalized.includes("head of department");
 }
+
+/** Leadership roles (principal, HoD) first; then by `positionIndex`. */
+export function sortLeadershipHighlightFirst(cards: FacultyCardItem[]): FacultyCardItem[] {
+  return [...cards].sort((a, b) => {
+    const aLead = isLeadershipHighlight(a.role) ? 0 : 1;
+    const bLead = isLeadershipHighlight(b.role) ? 0 : 1;
+    if (aLead !== bLead) return aLead - bLead;
+    return a.positionIndex - b.positionIndex;
+  });
+}

@@ -37,16 +37,6 @@ export default function FacultyBoardPage() {
             <h1 className="text-xl font-bold tracking-tight text-foreground dark:text-slate-50 sm:text-2xl">
               School Faculty Board
             </h1>
-            <p className="mt-2 max-w-xl text-xs leading-snug text-muted-foreground sm:text-sm">
-              To edit rows, columns, and faculty cards, open the{" "}
-              <Link
-                href="/admin?tab=faculty"
-                className="font-medium text-primary underline-offset-4 hover:underline dark:text-sky-300 dark:hover:text-sky-200"
-              >
-                Admin → Faculty board
-              </Link>{" "}
-              tab (requires staff login).
-            </p>
           </div>
         </div>
 

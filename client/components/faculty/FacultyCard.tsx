@@ -85,7 +85,10 @@ export default function FacultyCard({
           "hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0",
           "dark:border-white/10 dark:bg-slate-800/80 dark:hover:border-white/25",
           featured &&
-            "border-primary/35 bg-primary/[0.06] px-2.5 pt-2.5 pb-1.5 shadow-lg ring-1 ring-primary/20 sm:px-2.5 sm:pt-2.5 sm:pb-1.5 dark:border-primary/40 dark:bg-slate-800/95 dark:ring-primary/25"
+            "border-primary/35 bg-primary/[0.06] px-2.5 pt-2.5 pb-1.5 shadow-lg ring-1 ring-primary/20 sm:px-2.5 sm:pt-2.5 sm:pb-1.5 dark:border-primary/40 dark:bg-slate-800/95 dark:ring-primary/25",
+          isHighlighted &&
+            !featured &&
+            "border-primary/40 bg-primary/5 ring-1 ring-primary/20 dark:border-primary/35 dark:bg-slate-800/85 dark:ring-primary/15"
         )}
       >
         <div
