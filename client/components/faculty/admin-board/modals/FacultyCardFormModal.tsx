@@ -133,6 +133,7 @@ export function FacultyCardFormModal({
                   <Label htmlFor="faculty-email" className="text-foreground">
                     Email (optional)
                   </Label>
+
                   <Input
                     id="faculty-email"
                     type="email"
