@@ -30,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <RouteLoadingBar />
           <Header />
-          <main className="min-h-screen pb-24 md:pb-0">
+          <main className="min-h-screen pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
             <RouteTransition>{children}</RouteTransition>
           </main>
           <Footer />
