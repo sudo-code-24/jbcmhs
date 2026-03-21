@@ -21,7 +21,9 @@ const AdminUsers = ({ currentUsername = null }: AdminUsersProps) => {
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [loading, setLoading] = useState(false);
   const [deletingUsername, setDeletingUsername] = useState<string | null>(null);
-  const [resettingUsername, setResettingUsername] = useState<string | null>(null);
+  const [resettingUsername, setResettingUsername] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -34,7 +36,9 @@ const AdminUsers = ({ currentUsername = null }: AdminUsersProps) => {
         | UserRow[]
         | null;
       if (!response.ok || !Array.isArray(data)) {
-        setError((data as { error?: string } | null)?.error || "Failed to load users");
+        setError(
+          (data as { error?: string } | null)?.error || "Failed to load users",
+        );
         return;
       }
       setUsers(data);
@@ -68,9 +72,10 @@ const AdminUsers = ({ currentUsername = null }: AdminUsersProps) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username, password, role }),
         });
-        const data = (await response.json().catch(() => null)) as
-          | { error?: string; user?: { username?: string } }
-          | null;
+        const data = (await response.json().catch(() => null)) as {
+          error?: string;
+          user?: { username?: string };
+        } | null;
         if (!response.ok) {
           setError(data?.error || "Failed to create user");
           return;
@@ -84,7 +89,7 @@ const AdminUsers = ({ currentUsername = null }: AdminUsersProps) => {
         setLoading(false);
       }
     },
-    [username, password, role, resetCreateForm, loadUsers]
+    [username, password, role, resetCreateForm, loadUsers],
   );
 
   const handleDeleteUser = useCallback(
@@ -97,10 +102,12 @@ const AdminUsers = ({ currentUsername = null }: AdminUsersProps) => {
       try {
         const response = await fetch(
           `/api/auth/users/${encodeURIComponent(targetUsername)}`,
-          { method: "DELETE" }
+          { method: "DELETE" },
         );
         if (!response.ok) {
-          const data = (await response.json().catch(() => null)) as { error?: string } | null;
+          const data = (await response.json().catch(() => null)) as {
+            error?: string;
+          } | null;
           setError(data?.error || "Failed to delete user");
           return;
         }
@@ -112,20 +119,27 @@ const AdminUsers = ({ currentUsername = null }: AdminUsersProps) => {
         setDeletingUsername(null);
       }
     },
-    [loadUsers]
+    [loadUsers],
   );
 
   const handleResetPassword = useCallback(async (targetUsername: string) => {
-    if (!confirm(`Reset password for "${targetUsername}" to default (jbcmhs_local)?`)) return;
+    if (
+      !confirm(
+        `Reset password for "${targetUsername}" to default (jbcmhs_local)?`,
+      )
+    )
+      return;
     setError("");
     setSuccess("");
     setResettingUsername(targetUsername);
     try {
       const response = await fetch(
         `/api/auth/users/${encodeURIComponent(targetUsername)}/reset-password`,
-        { method: "POST" }
+        { method: "POST" },
       );
-      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       if (!response.ok) {
         setError(data?.error || "Failed to reset password");
         return;
@@ -139,7 +153,7 @@ const AdminUsers = ({ currentUsername = null }: AdminUsersProps) => {
   }, []);
 
   return (
-    <Card className="space-y-4 bg-transparent">
+    <div className="space-y-4 bg-transparent">
       <CardHeader>
         <div className="flex items-center justify-end gap-3">
           <Button type="button" onClick={() => setIsCreateOpen(true)}>
@@ -148,10 +162,14 @@ const AdminUsers = ({ currentUsername = null }: AdminUsersProps) => {
           </Button>
         </div>
       </CardHeader>
-      <CardContent >
-        {error ? <p className="mb-3 text-sm text-destructive">{error}</p> : null}
+      <CardContent>
+        {error ? (
+          <p className="mb-3 text-sm text-destructive">{error}</p>
+        ) : null}
         {success ? (
-          <p className="mb-3 text-sm text-emerald-600 dark:text-emerald-400">{success}</p>
+          <p className="mb-3 text-sm text-emerald-600 dark:text-emerald-400">
+            {success}
+          </p>
         ) : null}
 
         <UserTable
@@ -177,7 +195,7 @@ const AdminUsers = ({ currentUsername = null }: AdminUsersProps) => {
         loading={loading}
         onSubmit={handleCreateUser}
       />
-    </Card>
+    </div>
   );
 };
 
