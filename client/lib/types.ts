@@ -22,6 +22,19 @@ export interface Event {
   imageUrl?: string;
 }
 
+/** Public faculty board card (persisted to Google Sheet via API). */
+export type FacultyCardItem = {
+  id: string;
+  name: string;
+  role: string;
+  department: string;
+  email?: string;
+  phone?: string;
+  photoUrl?: string;
+  boardSection: string;
+  positionIndex: number;
+};
+
 export interface SchoolInfo {
   id: number;
   name: string;

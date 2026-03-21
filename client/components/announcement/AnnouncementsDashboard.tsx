@@ -64,9 +64,7 @@ const AnnouncementsDashboard = ({ announcements }: AnnouncementsDashboardProps) 
   };
 
   return (
-    <div className="py-6 sm:py-8 md:py-10">
-      <div className="container-wide">
-        <section className="rounded-2xl border border-border/70 bg-card/80 p-4 shadow-xl backdrop-blur-md sm:p-5 dark:border-white/10 dark:bg-slate-900/70">
+    <section className="rounded-2xl border border-border/70 bg-card/80 p-4 shadow-xl backdrop-blur-md sm:p-5 dark:border-white/10 dark:bg-slate-900/70">
           <div className="mb-4 flex items-start justify-between gap-3">
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Announcements</h2>
             <div className="flex flex-wrap gap-2">
@@ -184,9 +182,7 @@ const AnnouncementsDashboard = ({ announcements }: AnnouncementsDashboardProps) 
               onChange={setSelectedYears}
             />
           </FilterModal>
-        </section>
-      </div>
-    </div>
+    </section>
   );
 };
 

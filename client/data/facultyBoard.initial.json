@@ -1,0 +1,57 @@
+[
+  {
+    "id": "f-001",
+    "name": "Dr. Maria Santos",
+    "role": "Principal",
+    "department": "Administration",
+    "email": "maria.santos@school.edu",
+    "phone": "(555) 100-1001",
+    "photoUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80",
+    "boardSection": "Leadership",
+    "positionIndex": 1
+  },
+  {
+    "id": "f-002",
+    "name": "Mr. Jonathan Reed",
+    "role": "Vice Principal",
+    "department": "Administration",
+    "email": "jonathan.reed@school.edu",
+    "phone": "(555) 100-1002",
+    "photoUrl": "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=300&q=80",
+    "boardSection": "Leadership",
+    "positionIndex": 2
+  },
+  {
+    "id": "f-003",
+    "name": "Ms. Priya Patel",
+    "role": "Head of Department",
+    "department": "Mathematics",
+    "email": "priya.patel@school.edu",
+    "phone": "(555) 100-2001",
+    "photoUrl": "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=300&q=80",
+    "boardSection": "Academic Departments",
+    "positionIndex": 1
+  },
+  {
+    "id": "f-004",
+    "name": "Mr. Carlos Mendez",
+    "role": "Head of Department",
+    "department": "Science",
+    "email": "carlos.mendez@school.edu",
+    "phone": "(555) 100-2002",
+    "photoUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80",
+    "boardSection": "Academic Departments",
+    "positionIndex": 2
+  },
+  {
+    "id": "f-005",
+    "name": "Ms. Olivia Chen",
+    "role": "Guidance Counselor",
+    "department": "Student Services",
+    "email": "olivia.chen@school.edu",
+    "phone": "(555) 100-3001",
+    "photoUrl": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80",
+    "boardSection": "Student Services",
+    "positionIndex": 1
+  }
+]

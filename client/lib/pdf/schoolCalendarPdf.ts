@@ -1,11 +1,10 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Event } from "@/lib/types";
+import { ACCENT_RGB, drawSchoolFormalPdfHeader } from "./schoolPdfHeader";
 
 const PDF_TITLE = "JOSE B. CARDENAS MEMORIAL HIGH SCHOOL CALENDAR 2026";
-const ACCENT_RGB: [number, number, number] = [44, 62, 80]; // #2c3e50
 const MONTH_HEADER_FILL: [number, number, number] = [240, 240, 240];
-const SCHOOL_LOGO_URL = "/jbcmhs_logo.png";
 
 function normalizeDate(input?: string | Date): Date | null {
   if (!input) return null;
@@ -79,68 +78,9 @@ function groupEventsByMonth(events: Event[]): MonthGroup[] {
   });
 }
 
-function fileToDataUrl(file: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(new Error("Unable to read logo file"));
-    reader.readAsDataURL(file);
-  });
-}
-
-async function loadSchoolLogoDataUrl(): Promise<string | null> {
-  try {
-    const response = await fetch(SCHOOL_LOGO_URL);
-    if (!response.ok) return null;
-    const blob = await response.blob();
-    return await fileToDataUrl(blob);
-  } catch {
-    return null;
-  }
-}
-
 export async function generateSchoolCalendarPdf(events: Event[]): Promise<void> {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const marginX = 14;
-  const logoX = marginX;
-  const logoY = 10;
-  const logoSize = 18;
-  const headerTextLeft = logoX + logoSize + 6;
-  const headerTextRight = pageWidth - marginX;
-  const headerTextWidth = headerTextRight - headerTextLeft;
-  const headerTextCenterX = headerTextLeft + headerTextWidth / 2;
-  const tableStartY = 44;
-  const logoDataUrl = await loadSchoolLogoDataUrl();
-  const generatedAt = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
-  if (logoDataUrl) {
-    doc.addImage(logoDataUrl, "PNG", logoX, logoY, logoSize, logoSize, undefined, "FAST");
-  } else {
-    doc.setFillColor(245, 245, 245);
-    doc.setDrawColor(180, 180, 180);
-    doc.rect(logoX, logoY, logoSize, logoSize, "FD");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(90, 90, 90);
-    doc.text("LOGO", logoX + logoSize / 2, logoY + logoSize / 2, { align: "center", baseline: "middle" });
-  }
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.setTextColor(...ACCENT_RGB);
-  const titleLines = doc.splitTextToSize(PDF_TITLE, headerTextWidth) as string[];
-  doc.text(titleLines, headerTextCenterX, 16, { align: "center" });
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(60, 60, 60);
-  const titleBottomY = 16 + (titleLines.length - 1) * 6;
-  doc.text(`Last Updated: ${generatedAt}`, headerTextCenterX, titleBottomY + 8, { align: "center" });
+  const { pageWidth, marginX, tableStartY } = await drawSchoolFormalPdfHeader(doc, PDF_TITLE);
 
   const rows: Array<Array<string | { content: string; colSpan: number; styles: Record<string, unknown> }>> = [];
   const groups = groupEventsByMonth(events);

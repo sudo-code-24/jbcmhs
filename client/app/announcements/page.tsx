@@ -7,5 +7,11 @@ export const dynamic = "force-dynamic";
 export default async function AnnouncementsPage() {
   const announcements = await getAnnouncements().catch(() => []);
 
-  return <AnnouncementsDashboard announcements={announcements} />;
+  return (
+    <div className="container-wide py-3 sm:py-4">
+      <div className="page-radial-surface text-foreground dark:text-slate-100">
+        <AnnouncementsDashboard announcements={announcements} />
+      </div>
+    </div>
+  );
 }

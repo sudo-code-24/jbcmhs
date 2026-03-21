@@ -106,4 +106,27 @@
   .container-wide {
     @apply mx-auto max-w-6xl px-4 sm:px-6 lg:px-8;
   }
+
+  /** Shared page shell (faculty, announcements, calendar, admin): light radial + dark navy */
+  .page-radial-surface {
+    @apply relative overflow-hidden rounded-xl border px-3 py-4 shadow-lg sm:px-5 sm:py-5 md:py-6;
+    border-color: hsl(var(--border) / 0.85);
+    background-color: hsl(var(--background));
+    background-image: radial-gradient(
+      ellipse 92% 72% at 50% -8%,
+      hsl(0 0% 100%) 0%,
+      hsl(var(--muted) / 0.35) 48%,
+      hsl(var(--muted) / 0.65) 100%
+    );
+  }
+  .dark .page-radial-surface {
+    border-color: rgba(255, 255, 255, 0.06);
+    background-color: rgb(2 6 23);
+    background-image: radial-gradient(
+      ellipse 88% 70% at 50% -5%,
+      rgb(51 65 85 / 0.52) 0%,
+      rgb(15 23 42) 52%,
+      rgb(2 6 23) 100%
+    );
+  }
 }

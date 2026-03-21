@@ -6,6 +6,7 @@ import eventsRouter from "./routes/events";
 import schoolInfoRouter from "./routes/schoolInfo";
 import imagesRouter from "./routes/images";
 import authRouter from "./routes/auth";
+import facultyBoardRouter from "./routes/facultyBoard";
 import { ensureDefaultAdminAccount } from "./services/authService";
 
 const app = express();
@@ -48,6 +49,7 @@ app.use("/api/events", eventsRouter);
 app.use("/api/school-info", schoolInfoRouter);
 app.use("/api/images", imagesRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/faculty-board", facultyBoardRouter);
 
 app.get("/api/health", (_: Request, res: Response) => res.json({ status: "ok" }));
 

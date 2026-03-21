@@ -1,8 +1,5 @@
 import { getAnnouncements, getEvents } from "@/lib/api";
-import AdminAnnouncements from "@/components/announcement/AdminAnnouncements";
-import AdminEvents from "@/components/event/AdminEvents";
-import AdminUsers from "@/components/user/AdminUsers";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AdminDashboardTabs, { type AdminTabValue } from "@/components/admin/AdminDashboardTabs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
@@ -17,7 +14,19 @@ const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage() {
+function resolveAdminTab(raw: string | string[] | undefined, isAdmin: boolean): AdminTabValue {
+  const t = Array.isArray(raw) ? raw[0] : raw;
+  if (!t || typeof t !== "string") return "announcements";
+  if (t === "users") return isAdmin ? "users" : "announcements";
+  if (t === "announcements" || t === "events" || t === "faculty") return t;
+  return "announcements";
+}
+
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: { tab?: string | string[] };
+}) {
   const cookieStore = cookies();
   const sessionCookie = cookieStore.get(ADMIN_AUTH_COOKIE)?.value;
   const token = cookieStore.get(AUTH_TOKEN_COOKIE)?.value || "";
@@ -58,41 +67,26 @@ export default async function AdminPage() {
     getEvents().catch(() => []),
   ]);
 
-  return (
-    <div className="container-wide py-8 sm:py-10 md:py-12">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">Admin</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Manage announcements and events.</p>
-        </div>
-        <form action="/api/auth/logout" method="post">
-          <button
-            type="submit"
-            className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent"
-          >
-            Logout
-          </button>
-        </form>
-      </div>
+  const defaultTab = resolveAdminTab(searchParams.tab, isAdmin);
 
-      <Tabs defaultValue="announcements" className="mt-8">
-        <TabsList>
-          <TabsTrigger value="announcements">Announcements</TabsTrigger>
-          <TabsTrigger value="events">Events</TabsTrigger>
-          {isAdmin ? <TabsTrigger value="users">Users</TabsTrigger> : null}
-        </TabsList>
-        <TabsContent value="announcements">
-          <AdminAnnouncements initial={announcements} />
-        </TabsContent>
-        <TabsContent value="events">
-          <AdminEvents initial={events} />
-        </TabsContent>
-        {isAdmin ? (
-          <TabsContent value="users">
-            <AdminUsers currentUsername={currentUsername} />
-          </TabsContent>
-        ) : null}
-      </Tabs>
+  return (
+    <div className="container-wide py-3 sm:py-4">
+      <div className="page-radial-surface text-foreground dark:text-slate-100">
+        <div className="mb-4 border-b border-border pb-4 dark:border-white/[0.06]">
+          <h1 className="text-xl font-bold text-primary dark:text-slate-50 sm:text-2xl">Admin</h1>
+          <p className="mt-2 text-xs text-muted-foreground sm:text-sm">
+            Manage announcements, events, and the faculty board layout.
+          </p>
+        </div>
+
+        <AdminDashboardTabs
+          defaultTab={defaultTab}
+          announcements={announcements}
+          events={events}
+          isAdmin={isAdmin}
+          currentUsername={currentUsername}
+        />
+      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import Modal from "@/components/ui/modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type FilterModalProps = {
   open: boolean;
@@ -14,7 +14,11 @@ type FilterModalProps = {
 };
 
 const FilterModal = ({ open, onClose, title, children, onReset, onApply }: FilterModalProps) => (
-  <Modal open={open} onClose={onClose} title={title}>
+  <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <DialogContent maxWidth="2xl">
+      <DialogHeader>
+        <DialogTitle>{title}</DialogTitle>
+      </DialogHeader>
     <div className="space-y-3">
       {children}
       <div className="flex justify-end gap-2 pt-1">
@@ -26,7 +30,8 @@ const FilterModal = ({ open, onClose, title, children, onReset, onApply }: Filte
         </Button>
       </div>
     </div>
-  </Modal>
+    </DialogContent>
+  </Dialog>
 );
 
 export default FilterModal;

@@ -3,7 +3,7 @@
 import { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import LoadingSpinner from "@/components/ui/loading-spinner";
-import Modal from "@/components/ui/modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { UserRole } from "./types";
 
 type UserCreateModalProps = {
@@ -31,7 +31,11 @@ const UserCreateModal = ({
   loading,
   onSubmit,
 }: UserCreateModalProps) => (
-  <Modal open={open} onClose={onClose} title="Create User" size="md">
+  <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <DialogContent maxWidth="md">
+      <DialogHeader>
+        <DialogTitle>Create User</DialogTitle>
+      </DialogHeader>
     <form className="max-w-md space-y-4" onSubmit={onSubmit}>
       <div className="space-y-1.5">
         <label htmlFor="new-user-username" className="text-sm font-medium">
@@ -92,7 +96,8 @@ const UserCreateModal = ({
         </Button>
       </div>
     </form>
-  </Modal>
+    </DialogContent>
+  </Dialog>
 );
 
 export default UserCreateModal;

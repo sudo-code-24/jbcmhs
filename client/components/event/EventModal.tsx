@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import Modal from "@/components/ui/modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toGoogleCalendarEmbedDayUrl } from "./utils";
 import type { EventModalProps } from "./types";
 
@@ -18,7 +18,11 @@ const EventModal = ({
   );
 
   return (
-    <Modal open={open} onClose={onClose} title={event.title} size="2xl">
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent maxWidth="2xl">
+        <DialogHeader>
+          <DialogTitle>{event.title}</DialogTitle>
+        </DialogHeader>
       <div className="space-y-3">
         <time className="block text-sm text-muted-foreground" dateTime={event.date}>
           {dateLabel}
@@ -34,7 +38,8 @@ const EventModal = ({
           </div>
         ) : null}
       </div>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   );
 };
 

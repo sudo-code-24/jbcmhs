@@ -1,4 +1,18 @@
-import type { Announcement, AnnouncementCategory, Event, EventType, SchoolInfo } from "./types";
+import type {
+  Announcement,
+  AnnouncementCategory,
+  Event,
+  EventType,
+  FacultyCardItem,
+  SchoolInfo,
+} from "./types";
+
+export type FacultyBoardApiResponse = {
+  rows: string[];
+  cards: FacultyCardItem[];
+  /** True when the Google Sheet tab has no rows yet (first use). */
+  sheetEmpty: boolean;
+};
 
 // API_URL = internal (e.g. http://server:5000 in Docker); NEXT_PUBLIC_API_URL = browser (e.g. https://jbcmhs.onrender.com)
 const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
@@ -23,6 +37,16 @@ async function fetchApi<T>(path: string, options: FetchOptions = {}): Promise<T 
 
 export async function getSchoolInfo(): Promise<SchoolInfo | null> {
   return fetchApi<SchoolInfo>("/api/school-info", { next: { revalidate: 60 } });
+}
+
+export async function getFacultyBoard(): Promise<FacultyBoardApiResponse> {
+  return (
+    (await fetchApi<FacultyBoardApiResponse>("/api/faculty-board", { cache: "no-store" })) ?? {
+      rows: [],
+      cards: [],
+      sheetEmpty: true,
+    }
+  );
 }
 
 export async function getAnnouncements(limit: number | null = null): Promise<Announcement[]> {
@@ -85,6 +109,16 @@ export function updateAnnouncement(
 }
 export function deleteAnnouncement(id: number): Promise<null> {
   return fetchApiWithAuth<null>(`/api/announcements/${id}`, { method: "DELETE" }) as Promise<null>;
+}
+
+export function saveFacultyBoard(data: {
+  rows: string[];
+  cards: FacultyCardItem[];
+}): Promise<{ ok: boolean }> {
+  return fetchApiWithAuth<{ ok: boolean }>("/api/faculty-board", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  }) as Promise<{ ok: boolean }>;
 }
 export function createEvent(data: {
   title: string;
