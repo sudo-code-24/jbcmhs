@@ -1,7 +1,6 @@
 export type FacultyCardDraft = {
   name: string;
   role: string;
-  department: string;
   boardSection: string;
   positionIndex: number;
   email: string;
@@ -12,7 +11,6 @@ export type FacultyCardDraft = {
 export const emptyFacultyCardDraft: FacultyCardDraft = {
   name: "",
   role: "",
-  department: "",
   boardSection: "",
   positionIndex: 1,
   email: "",

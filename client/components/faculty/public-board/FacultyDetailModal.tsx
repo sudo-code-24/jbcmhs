@@ -15,7 +15,11 @@ type FacultyDetailModalProps = {
   onClose: () => void;
 };
 
-export function FacultyDetailModal({ card, open, onClose }: FacultyDetailModalProps) {
+export function FacultyDetailModal({
+  card,
+  open,
+  onClose,
+}: FacultyDetailModalProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent maxWidth="lg">
@@ -36,17 +40,13 @@ export function FacultyDetailModal({ card, open, onClose }: FacultyDetailModalPr
                 <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Role
                 </dt>
-                <dd className="mt-0.5 font-medium text-foreground">{card.role}</dd>
+                <dd className="mt-0.5 font-medium text-foreground">
+                  {card.role}
+                </dd>
               </div>
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Department
-                </dt>
-                <dd className="mt-0.5 text-foreground">{card.department}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Row / section
                 </dt>
                 <dd className="mt-0.5 text-foreground">{card.boardSection}</dd>
               </div>

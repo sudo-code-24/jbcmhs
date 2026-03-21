@@ -120,7 +120,6 @@ export default function AdminBoard({
     setDraft({
       name: card.name,
       role: card.role,
-      department: card.department,
       boardSection: card.boardSection,
       positionIndex: card.positionIndex,
       email: card.email ?? "",
@@ -133,7 +132,7 @@ export default function AdminBoard({
   const normalizeDraftToFacultyCard = (): Omit<FacultyCardItem, "id"> => ({
     name: draft.name.trim(),
     role: draft.role.trim(),
-    department: draft.department.trim(),
+    department: draft.boardSection.trim(),
     boardSection: draft.boardSection.trim(),
     email: draft.email.trim() ? draft.email.trim() : undefined,
     phone: draft.phone.trim() ? draft.phone.trim() : undefined,
@@ -143,12 +142,7 @@ export default function AdminBoard({
 
   const onSubmitCard = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (
-      !draft.name.trim() ||
-      !draft.role.trim() ||
-      !draft.department.trim() ||
-      !draft.boardSection.trim()
-    ) {
+    if (!draft.name.trim() || !draft.role.trim() || !draft.boardSection.trim()) {
       return;
     }
 
@@ -478,7 +472,6 @@ export default function AdminBoard({
         maxWidth="lg"
         actionsOrder="confirm-first"
         footerClassName="flex-wrap gap-2"
-        confirmLabel="Delete row and cards"
         confirmVariant="destructive"
         confirmLoading={isSaving}
         onConfirm={() => {
@@ -522,7 +515,6 @@ export default function AdminBoard({
         open={deleteCardId != null}
         onOpenChange={(open) => !open && setDeleteCardId(null)}
         title="Delete faculty card?"
-        confirmLabel="Delete card"
         confirmVariant="destructive"
         confirmLoading={isSaving}
         onConfirm={() => {
@@ -551,7 +543,6 @@ export default function AdminBoard({
             ? "Changes are saved to the live faculty board as soon as you confirm."
             : "The new card is added to the live faculty board as soon as you confirm."
         }
-        confirmLabel={editingId ? "Save card" : "Create card"}
         confirmLoading={isSaving}
         onConfirm={confirmCardSave}
       />
@@ -566,7 +557,6 @@ export default function AdminBoard({
             soon as you confirm.
           </p>
         }
-        confirmLabel="Save row"
         confirmLoading={isSaving}
         onConfirm={confirmSaveDepartment}
       />
