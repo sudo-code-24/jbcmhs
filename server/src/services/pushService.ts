@@ -7,6 +7,9 @@ import webpush from "../lib/webpush";
 
 export const subscribeClient = (subscription: PushSubscriptionPayload) => {
   saveSubscription(subscription);
+  console.info(
+    `[push] subscribe saved; total subscribers=${getAllSubscriptions().length} endpoint≈${subscription.endpoint.slice(0, 56)}…`,
+  );
 };
 
 export const sendNotification = async (
@@ -27,9 +30,12 @@ const isExpiredSubscriptionError = (err: unknown): boolean => {
 export const notifyAll = async (payload: NotificationPayload) => {
   const subs = getAllSubscriptions();
   if (subs.length === 0) {
-    console.info("[push] notifyAll: no active subscriptions (users must enable Alerts and server must stay up)");
+    console.info(
+      "[push] notifyAll: 0 subscribers — open the site, tap the bell, and confirm the same API URL handles /api/push/subscribe and creates announcements (see server logs on subscribe).",
+    );
     return;
   }
+  console.info(`[push] notifyAll: sending "${payload.title}" to ${subs.length} subscriber(s)`);
   await Promise.all(
     subs.map(async (sub) => {
       try {
@@ -39,7 +45,7 @@ export const notifyAll = async (payload: NotificationPayload) => {
           removeSubscription(sub.endpoint);
           return;
         }
-        console.warn("Push send failed:", err);
+        console.warn("[push] send failed:", sub.endpoint.slice(0, 64), err);
       }
     }),
   );

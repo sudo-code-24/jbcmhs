@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
-import { subscribeClient } from "../services/pushService";
+import { getAllSubscriptions } from "../lib/push.store";
+import { notifyAll, subscribeClient } from "../services/pushService";
 import { PushSubscriptionPayload } from "../types/push.types";
 
 function isValidSubscription(body: unknown): body is PushSubscriptionPayload {
@@ -26,4 +27,33 @@ export const subscribe = (req: Request, res: Response) => {
   }
   subscribeClient(raw);
   return res.status(201).json({ ok: true });
+};
+
+/** GET — subscriber count for debugging (no secrets). */
+export const getStatus = (_req: Request, res: Response) => {
+  const subscribers = getAllSubscriptions().length;
+  const vapidConfigured = Boolean(process.env.VAPID_PUBLIC_KEY?.trim());
+  res.json({ ok: true, subscribers, vapidConfigured });
+};
+
+/**
+ * POST — send a test notification to all subscribers.
+ * Requires: `Authorization: Bearer <PUSH_TEST_SECRET>` and env `PUSH_TEST_SECRET` on the API server.
+ */
+export const postTestNotification = async (req: Request, res: Response) => {
+  const secret = process.env.PUSH_TEST_SECRET?.trim();
+  if (!secret) {
+    return res.status(503).json({ error: "PUSH_TEST_SECRET is not set on the server" });
+  }
+  const auth = req.headers.authorization;
+  if (auth !== `Bearer ${secret}`) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const n = getAllSubscriptions().length;
+  await notifyAll({
+    title: "Test notification",
+    body: "If you see this, push delivery is working.",
+    url: "/",
+  });
+  return res.json({ ok: true, subscribers: n });
 };

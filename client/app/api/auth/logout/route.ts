@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import { ADMIN_AUTH_COOKIE, AUTH_SESSION_COOKIE, AUTH_TOKEN_COOKIE } from "@/lib/adminAuth";
+import { getServerBackendUrl } from "@/lib/serverBackendUrl";
 
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
+const API_URL = getServerBackendUrl();
 
 const SITE_URL =
   process.env.SITE_URL ||

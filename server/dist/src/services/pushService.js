@@ -8,6 +8,7 @@ const push_store_1 = require("../lib/push.store");
 const webpush_1 = __importDefault(require("../lib/webpush"));
 const subscribeClient = (subscription) => {
     (0, push_store_1.saveSubscription)(subscription);
+    console.info(`[push] subscribe saved; total subscribers=${(0, push_store_1.getAllSubscriptions)().length} endpoint≈${subscription.endpoint.slice(0, 56)}…`);
 };
 exports.subscribeClient = subscribeClient;
 const sendNotification = async (subscription, payload) => {
@@ -24,9 +25,10 @@ const isExpiredSubscriptionError = (err) => {
 const notifyAll = async (payload) => {
     const subs = (0, push_store_1.getAllSubscriptions)();
     if (subs.length === 0) {
-        console.info("[push] notifyAll: no active subscriptions (users must enable Alerts and server must stay up)");
+        console.info("[push] notifyAll: 0 subscribers — open the site, tap the bell, and confirm the same API URL handles /api/push/subscribe and creates announcements (see server logs on subscribe).");
         return;
     }
+    console.info(`[push] notifyAll: sending "${payload.title}" to ${subs.length} subscriber(s)`);
     await Promise.all(subs.map(async (sub) => {
         try {
             await (0, exports.sendNotification)(sub, payload);
@@ -36,7 +38,7 @@ const notifyAll = async (payload) => {
                 (0, push_store_1.removeSubscription)(sub.endpoint);
                 return;
             }
-            console.warn("Push send failed:", err);
+            console.warn("[push] send failed:", sub.endpoint.slice(0, 64), err);
         }
     }));
 };

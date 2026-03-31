@@ -8,8 +8,9 @@ import {
   AUTH_TOKEN_COOKIE,
   isValidAdminSessionCookie,
 } from "@/lib/adminAuth";
+import { getServerBackendUrl } from "@/lib/serverBackendUrl";
 
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
+const API_URL = getServerBackendUrl();
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";

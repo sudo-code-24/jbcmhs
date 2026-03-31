@@ -6,8 +6,9 @@ import {
   isValidAdminSessionCookie,
 } from "@/lib/adminAuth";
 import { cookies } from "next/headers";
+import { getServerBackendUrl } from "@/lib/serverBackendUrl";
 
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
+const API_URL = getServerBackendUrl();
 
 function ensureAuth(): { token: string; sessionId: string } | NextResponse {
   const cookieStore = cookies();

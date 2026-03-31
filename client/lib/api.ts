@@ -7,6 +7,8 @@ import type {
   SchoolInfo,
 } from "./types";
 
+import { getServerBackendUrl } from "./serverBackendUrl";
+
 export type FacultyBoardApiResponse = {
   rows: string[];
   cards: FacultyCardItem[];
@@ -14,8 +16,8 @@ export type FacultyBoardApiResponse = {
   sheetEmpty: boolean;
 };
 
-// API_URL = internal (e.g. http://server:5000 in Docker); NEXT_PUBLIC_API_URL = browser (e.g. https://jbcmhs.onrender.com)
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
+/** Express API base (see serverBackendUrl.ts for dev vs prod defaults). */
+const API_URL = getServerBackendUrl();
 
 type FetchOptions = RequestInit & { next?: { revalidate?: number } };
 
