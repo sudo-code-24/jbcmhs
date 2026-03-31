@@ -8,8 +8,15 @@ import {
   deleteAnnouncement,
 } from "@/lib/api";
 import type { Announcement } from "@/lib/types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import AnnouncementForm, { type AnnouncementFormValues } from "./AnnouncementForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import AnnouncementForm, {
+  type AnnouncementFormValues,
+} from "./AnnouncementForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +46,9 @@ const AdminAnnouncements = ({ initial }: AdminAnnouncementsProps) => {
     try {
       const payload = {
         ...values,
-        datePosted: values.datePosted ? new Date(values.datePosted).toISOString() : undefined,
+        datePosted: values.datePosted
+          ? new Date(values.datePosted).toISOString()
+          : undefined,
       };
       if (editing) {
         const updated = await updateAnnouncement(editing.id, payload);
@@ -93,29 +102,35 @@ const AdminAnnouncements = ({ initial }: AdminAnnouncementsProps) => {
           <span className="hidden md:inline">Create Announcement</span>
         </Button>
       </div>
-      {error && <p className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">{error}</p>}
+      {error && (
+        <p className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">
+          {error}
+        </p>
+      )}
       <Dialog open={open} onOpenChange={(next) => !next && resetForm()}>
         <DialogContent maxWidth="2xl">
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit announcement" : "Create announcement"}</DialogTitle>
+            <DialogTitle>
+              {editing ? "Edit announcement" : "Create announcement"}
+            </DialogTitle>
           </DialogHeader>
-        <AnnouncementForm
-          mode={editing ? "update" : "create"}
-          initialValues={
-            editing
-              ? {
-                  title: editing.title,
-                  content: editing.content,
-                  category: editing.category,
-                  datePosted: editing.datePosted,
-                  imageUrl: editing.imageUrl ?? "",
-                }
-              : undefined
-          }
-          loading={loading}
-          onSubmit={handleSubmit}
-          onCancel={editing ? resetForm : undefined}
-        />
+          <AnnouncementForm
+            mode={editing ? "update" : "create"}
+            initialValues={
+              editing
+                ? {
+                    title: editing.title,
+                    content: editing.content,
+                    category: editing.category,
+                    datePosted: editing.datePosted,
+                    imageUrl: editing.imageUrl ?? "",
+                  }
+                : undefined
+            }
+            loading={loading}
+            onSubmit={handleSubmit}
+            onCancel={editing ? resetForm : undefined}
+          />
         </DialogContent>
       </Dialog>
 
@@ -131,7 +146,13 @@ const AdminAnnouncements = ({ initial }: AdminAnnouncementsProps) => {
                   </Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Button type="button" variant="ghost" size="sm" onClick={() => startEdit(a)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={deletingId != null}
+                    size="sm"
+                    onClick={() => startEdit(a)}
+                  >
                     Edit
                   </Button>
                   <Button
