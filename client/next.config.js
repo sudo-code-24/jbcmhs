@@ -5,6 +5,7 @@ const withPWA = require("next-pwa")({
   register: true,
   skipWaiting: true,
   clientsClaim: true,
+  importScripts: ["push-handler.js"],
 
   runtimeCaching: [
     ...require("next-pwa/cache"),

@@ -6,6 +6,8 @@ import Footer from "@/components/Footer";
 import RouteTransition from "@/components/RouteTransition";
 import RouteLoadingBar from "@/components/RouteLoadingBar";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/toaster";
+import { SiteBroadcastListener } from "@/components/SiteBroadcastListener";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -33,6 +35,8 @@ export default function RootLayout({
     <html lang="en" className={outfit.variable} suppressHydrationWarning>
       <body className="min-h-screen font-sans">
         <ThemeProvider>
+          <Toaster />
+          <SiteBroadcastListener />
           <RouteLoadingBar />
           <Header />
           <main className="min-h-screen pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">

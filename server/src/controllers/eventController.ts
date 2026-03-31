@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import * as eventService from "../services/eventService";
+import { broadcastNewEvent } from "../services/pushService";
 
 export async function list(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -34,6 +35,7 @@ export async function create(req: Request, res: Response, next: NextFunction): P
       type,
       imageUrl,
     });
+    broadcastNewEvent(item.title);
     res.status(201).json(item);
   } catch (err) {
     next(err);

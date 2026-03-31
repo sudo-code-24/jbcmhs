@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.requiredEnv = requiredEnv;
 exports.getSpreadsheetId = getSpreadsheetId;
 exports.getSheetsApi = getSheetsApi;
 exports.getDriveApi = getDriveApi;

@@ -39,6 +39,7 @@ exports.create = create;
 exports.update = update;
 exports.remove = remove;
 const eventService = __importStar(require("../services/eventService"));
+const pushService_1 = require("../services/pushService");
 async function list(req, res, next) {
     try {
         const items = await eventService.getAll();
@@ -72,6 +73,7 @@ async function create(req, res, next) {
             type,
             imageUrl,
         });
+        (0, pushService_1.broadcastNewEvent)(item.title);
         res.status(201).json(item);
     }
     catch (err) {

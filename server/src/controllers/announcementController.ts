@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import * as announcementService from "../services/announcementService";
+import { broadcastNewAnnouncement } from "../services/pushService";
 
 export async function list(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -28,6 +29,7 @@ export async function create(req: Request, res: Response, next: NextFunction): P
       return;
     }
     const item = await announcementService.create({ title, content, category, datePosted, imageUrl });
+    broadcastNewAnnouncement(item.title);
     res.status(201).json(item);
   } catch (err) {
     next(err);

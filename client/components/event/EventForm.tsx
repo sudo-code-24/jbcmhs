@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { CardFooter } from "@/components/ui/card";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import { toast } from "@/hooks/use-toast";
+import { postSiteBroadcast } from "@/lib/siteBroadcast";
 import {
   Form,
   FormControl,
@@ -110,7 +112,13 @@ const EventForm = ({
         }
         const event =
           mode === "update" ? await updateEvent(eventId!, payload) : await createEvent(payload);
-        if (mode === "create") form.reset(getDefaults());
+        if (mode === "create") {
+          form.reset(getDefaults());
+          toast({ title: "Event created", description: event.title });
+          postSiteBroadcast({ type: "new_event", title: event.title });
+        } else {
+          toast({ title: "Event updated", description: event.title });
+        }
         if (!inline) setOpen(false);
         onSuccess?.(event);
         if (!onSuccess) router.refresh();

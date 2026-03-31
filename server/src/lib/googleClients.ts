@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 
-function requiredEnv(name: string): string {
+export function requiredEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
@@ -15,7 +15,8 @@ function getPrivateKey(): string {
   const fromJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   if (fromJson) {
     const parsed = JSON.parse(fromJson) as { private_key?: string };
-    if (!parsed.private_key) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is missing private_key");
+    if (!parsed.private_key)
+      throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is missing private_key");
     return parsed.private_key;
   }
 
@@ -29,7 +30,8 @@ function getClientEmail(): string {
   const fromJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   if (fromJson) {
     const parsed = JSON.parse(fromJson) as { client_email?: string };
-    if (!parsed.client_email) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is missing client_email");
+    if (!parsed.client_email)
+      throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is missing client_email");
     return parsed.client_email;
   }
 
@@ -61,4 +63,3 @@ export function getDriveApi() {
 export function getCalendarApi() {
   return google.calendar({ version: "v3", auth });
 }
-

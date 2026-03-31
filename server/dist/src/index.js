@@ -11,13 +11,12 @@ const events_1 = __importDefault(require("./routes/events"));
 const schoolInfo_1 = __importDefault(require("./routes/schoolInfo"));
 const images_1 = __importDefault(require("./routes/images"));
 const auth_1 = __importDefault(require("./routes/auth"));
+const push_1 = __importDefault(require("./routes/push"));
+const facultyBoard_1 = __importDefault(require("./routes/facultyBoard"));
 const authService_1 = require("./services/authService");
 const app = (0, express_1.default)();
 const PORT = process.env.PORT ?? 5005;
-const defaultOrigins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-];
+const defaultOrigins = ["http://localhost:3000", "http://127.0.0.1:3000"];
 const configuredOrigins = (process.env.CORS_ALLOWED_ORIGINS || "")
     .split(",")
     .map((origin) => origin.trim())
@@ -45,10 +44,14 @@ app.use("/api/events", events_1.default);
 app.use("/api/school-info", schoolInfo_1.default);
 app.use("/api/images", images_1.default);
 app.use("/api/auth", auth_1.default);
+app.use("/api/faculty-board", facultyBoard_1.default);
+app.use("/api/push", push_1.default);
 app.get("/api/health", (_, res) => res.json({ status: "ok" }));
 app.use((err, _req, res, _next) => {
     console.error(err);
-    res.status(err.status ?? 500).json({ error: err.message ?? "Internal server error" });
+    res
+        .status(err.status ?? 500)
+        .json({ error: err.message ?? "Internal server error" });
 });
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);

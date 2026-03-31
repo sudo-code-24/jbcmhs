@@ -1,3 +1,4 @@
+export declare function requiredEnv(name: string): string;
 export declare function getSpreadsheetId(): string;
 export declare function getSheetsApi(): import("googleapis").sheets_v4.Sheets;
 export declare function getDriveApi(): import("googleapis").drive_v3.Drive;

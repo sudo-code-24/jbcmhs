@@ -39,6 +39,7 @@ exports.create = create;
 exports.update = update;
 exports.remove = remove;
 const announcementService = __importStar(require("../services/announcementService"));
+const pushService_1 = require("../services/pushService");
 async function list(req, res, next) {
     try {
         const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
@@ -66,6 +67,7 @@ async function create(req, res, next) {
             return;
         }
         const item = await announcementService.create({ title, content, category, datePosted, imageUrl });
+        (0, pushService_1.broadcastNewAnnouncement)(item.title);
         res.status(201).json(item);
     }
     catch (err) {

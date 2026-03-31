@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import { toast } from "@/hooks/use-toast";
+import { postSiteBroadcast } from "@/lib/siteBroadcast";
 
 type AdminAnnouncementsProps = {
   initial: Announcement[];
@@ -44,9 +46,15 @@ const AdminAnnouncements = ({ initial }: AdminAnnouncementsProps) => {
       if (editing) {
         const updated = await updateAnnouncement(editing.id, payload);
         setList((prev) => prev.map((a) => (a.id === editing.id ? updated : a)));
+        toast({ title: "Announcement updated", description: updated.title });
       } else {
         const created = await createAnnouncement(payload);
         setList((prev) => [created, ...prev]);
+        toast({
+          title: "Announcement published",
+          description: created.title,
+        });
+        postSiteBroadcast({ type: "new_announcement", title: created.title });
       }
       resetForm();
     } catch (err) {
