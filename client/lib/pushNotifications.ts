@@ -13,8 +13,36 @@ export const PUSH_OPT_IN_STORAGE_KEY = "jbcmhs-push-opt-in";
 
 const SW_READY_WAIT_MS = 5000;
 
+function isIOSOrIPadOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  if (/iPad|iPhone|iPod/i.test(ua)) return true;
+  return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+}
+
+function isAndroid(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /\bAndroid\b/i.test(navigator.userAgent || "");
+}
+
+/** iOS only exposes Web Push for installed (standalone / home-screen) web apps (Safari 16.4+). */
+function isInstalledWebApp(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: fullscreen)").matches ||
+    window.matchMedia("(display-mode: minimal-ui)").matches ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
+
 export function isPushSupported(): boolean {
-  return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window;
+  if (typeof window === "undefined") return false;
+  if (!window.isSecureContext) return false;
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+  /** iOS / iPadOS Safari only enables Web Push from the home-screen app; Android Chrome allows it in-tab or installed. */
+  if (isIOSOrIPadOS() && !isInstalledWebApp()) return false;
+  return true;
 }
 
 /**
@@ -42,21 +70,41 @@ async function getActiveServiceWorkerRegistration(): Promise<ServiceWorkerRegist
   return navigator.serviceWorker.ready;
 }
 
-export async function subscribeToPushNotifications(): Promise<void> {
-  if (!isPushSupported()) {
-    throw new Error("Notifications are not supported in this browser.");
-  }
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") {
-    throw new Error("Notification permission was denied.");
-  }
-  const reg = await getActiveServiceWorkerRegistration();
+async function getVapidPublicKey(): Promise<string> {
+  const fromBuild = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
+  if (fromBuild) return fromBuild;
   const keyRes = await fetch("/api/push/vapid-public-key");
   if (!keyRes.ok) {
     const err = (await keyRes.json().catch(() => null)) as { error?: string } | null;
     throw new Error(err?.error || "Could not load push configuration.");
   }
   const { publicKey } = (await keyRes.json()) as { publicKey: string };
+  if (!publicKey?.trim()) {
+    throw new Error("Could not load push configuration.");
+  }
+  return publicKey.trim();
+}
+
+export async function subscribeToPushNotifications(): Promise<void> {
+  if (!isPushSupported()) {
+    throw new Error(
+      isIOSOrIPadOS()
+        ? "Add this site to your Home Screen, open the app from the icon, then enable alerts."
+        : isAndroid()
+          ? "Use Chrome or Samsung Internet over HTTPS, or update your browser."
+          : "Notifications are not supported in this browser.",
+    );
+  }
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    throw new Error(
+      isAndroid()
+        ? "Turn on notifications for this site: tap the lock or ⊕ icon in the address bar → Permissions → Notifications, or use Chrome Settings → Site settings → Notifications."
+        : "Notification permission was denied.",
+    );
+  }
+  const reg = await getActiveServiceWorkerRegistration();
+  const publicKey = await getVapidPublicKey();
   const existing = await reg.pushManager.getSubscription();
   const subscription =
     existing ??

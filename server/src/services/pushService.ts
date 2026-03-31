@@ -13,7 +13,10 @@ export const sendNotification = async (
   subscription: PushSubscriptionPayload,
   payload: NotificationPayload,
 ) => {
-  return webpush.sendNotification(subscription, JSON.stringify(payload));
+  return webpush.sendNotification(subscription, JSON.stringify(payload), {
+    TTL: 86_400,
+    urgency: "high",
+  });
 };
 
 const isExpiredSubscriptionError = (err: unknown): boolean => {

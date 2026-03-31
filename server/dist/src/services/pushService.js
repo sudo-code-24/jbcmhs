@@ -11,7 +11,10 @@ const subscribeClient = (subscription) => {
 };
 exports.subscribeClient = subscribeClient;
 const sendNotification = async (subscription, payload) => {
-    return webpush_1.default.sendNotification(subscription, JSON.stringify(payload));
+    return webpush_1.default.sendNotification(subscription, JSON.stringify(payload), {
+        TTL: 86400,
+        urgency: "high",
+    });
 };
 exports.sendNotification = sendNotification;
 const isExpiredSubscriptionError = (err) => {
@@ -20,6 +23,10 @@ const isExpiredSubscriptionError = (err) => {
 };
 const notifyAll = async (payload) => {
     const subs = (0, push_store_1.getAllSubscriptions)();
+    if (subs.length === 0) {
+        console.info("[push] notifyAll: no active subscriptions (users must enable Alerts and server must stay up)");
+        return;
+    }
     await Promise.all(subs.map(async (sub) => {
         try {
             await (0, exports.sendNotification)(sub, payload);
