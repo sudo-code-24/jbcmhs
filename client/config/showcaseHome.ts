@@ -1,8 +1,6 @@
-export type Feature = {
-  title: string;
-  text: string;
-  icon: string;
-};
+import type { SchoolShowcaseFeature } from "@/lib/types";
+
+export type Feature = SchoolShowcaseFeature;
 
 export type Post = {
   title: string;

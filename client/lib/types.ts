@@ -3,13 +3,19 @@ export type AnnouncementCategory = (typeof ANNOUNCEMENT_CATEGORIES)[number];
 export const EVENT_TYPES = ["academic", "event", "sports"] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
+/** Strapi single media (populate); `url` is usually relative (e.g. `/uploads/...`). */
+export type StrapiMedia = {
+  url?: string;
+  alternativeText?: string;
+} | null;
+
 export interface Announcement {
   id: number;
   title: string;
   content: string;
   category: AnnouncementCategory;
   datePosted: string;
-  imageUrl?: string;
+  image?: StrapiMedia;
 }
 
 export interface Event {
@@ -19,7 +25,7 @@ export interface Event {
   date: string;
   endDate?: string;
   type: EventType;
-  imageUrl?: string;
+  image?: StrapiMedia;
 }
 
 /** Public faculty board card (persisted to Google Sheet via API). */
@@ -30,9 +36,23 @@ export type FacultyCardItem = {
   department: string;
   email?: string;
   phone?: string;
-  photoUrl?: string;
+  image?: StrapiMedia;
   boardSection: string;
   positionIndex: number;
+};
+
+export type FacultyBoardApiResponse = {
+  rows: string[];
+  cards: FacultyCardItem[];
+  /** True when Strapi has no faculty board data yet (first use). */
+  sheetEmpty: boolean;
+};
+
+/** Home page feature cards (Strapi component `school.home-feature`). */
+export type SchoolShowcaseFeature = {
+  title: string;
+  text: string;
+  icon: string;
 };
 
 export interface SchoolInfo {
@@ -46,6 +66,11 @@ export interface SchoolInfo {
   email: string;
   address: string;
   officeHours: string;
-  heroImageUrl?: string;
-  schoolImageUrl?: string;
+  facebookUrl?: string;
+  heroQuote?: string;
+  heroHeading?: string;
+  heroDescription?: string;
+  heroImage?: StrapiMedia;
+  schoolInfoImage?: StrapiMedia;
+  showcaseFeatures: SchoolShowcaseFeature[];
 }

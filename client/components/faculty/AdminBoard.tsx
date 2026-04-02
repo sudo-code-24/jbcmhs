@@ -9,6 +9,7 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { matchesFacultySearch } from "@/lib/facultyBoardSearch";
 import { cn } from "@/lib/utils";
 import FacultyCard from "./FacultyCard";
+import { strapiMediaFullUrl } from "@/lib/strapi/publicMediaUrl";
 import {
   emptyFacultyCardDraft,
   type FacultyCardDraft,
@@ -27,7 +28,9 @@ type AdminBoardProps = {
     card: Omit<FacultyCardItem, "id">,
     targetSection: string,
     targetIndex1Based: number,
+    preferredId?: string,
   ) => void;
+  onRegisterFacultyImageUpload?: (cardId: string, file: File | null) => void;
   onUpsertCardWithOrdering: (card: FacultyCardItem) => void;
   onDeleteCard: (id: string) => void;
   onMoveCardWithinSectionToIndex: (id: string, targetIndex: number) => void;
@@ -63,6 +66,7 @@ export default function AdminBoard({
   onMoveRowToBefore,
   onUpdateRowDetail,
   onDeleteRow,
+  onRegisterFacultyImageUpload,
   searchQuery = "",
   isSaving = false,
   defaultDepartmentExpanded = true,
@@ -132,6 +136,8 @@ export default function AdminBoard({
       ...emptyFacultyCardDraft,
       boardSection: rowSection,
       positionIndex: rowCards.length + 1,
+      imageFile: null,
+      existingImageSrc: undefined,
     });
     setCardModalOpen(true);
   };
@@ -145,19 +151,20 @@ export default function AdminBoard({
       positionIndex: card.positionIndex,
       email: card.email ?? "",
       phone: card.phone ?? "",
-      photoUrl: card.photoUrl ?? "",
+      imageFile: null,
+      existingImageSrc: strapiMediaFullUrl(card.image?.url),
     });
     setCardModalOpen(true);
   };
 
-  const normalizeDraftToFacultyCard = (): Omit<FacultyCardItem, "id"> => ({
+  const normalizeDraftToFacultyCard = (existing?: FacultyCardItem): Omit<FacultyCardItem, "id"> => ({
     name: draft.name.trim(),
     role: draft.role.trim(),
     department: draft.boardSection.trim(),
     boardSection: draft.boardSection.trim(),
     email: draft.email.trim() ? draft.email.trim() : undefined,
     phone: draft.phone.trim() ? draft.phone.trim() : undefined,
-    photoUrl: draft.photoUrl.trim() ? draft.photoUrl.trim() : undefined,
+    image: draft.imageFile ? undefined : existing?.image,
     positionIndex: Math.max(1, Math.floor(Number(draft.positionIndex) || 1)),
   });
 
@@ -167,9 +174,10 @@ export default function AdminBoard({
       return;
     }
 
+    const existingCard = editingId ? cards.find((c) => c.id === editingId) : undefined;
     pendingCardSaveRef.current = {
       editingId,
-      payload: normalizeDraftToFacultyCard(),
+      payload: normalizeDraftToFacultyCard(existingCard),
     };
     setCardSaveConfirmOpen(true);
   };
@@ -179,13 +187,19 @@ export default function AdminBoard({
     if (!pending) return;
     const { editingId: id, payload } = pending;
     if (id) {
+      if (draft.imageFile && onRegisterFacultyImageUpload) {
+        onRegisterFacultyImageUpload(id, draft.imageFile);
+      }
       onUpsertCardWithOrdering({ id, ...payload });
     } else {
-      onAddCardToSectionAtIndex(
-        payload,
-        payload.boardSection,
-        payload.positionIndex,
-      );
+      const newId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `f-${Date.now()}`;
+      if (draft.imageFile && onRegisterFacultyImageUpload) {
+        onRegisterFacultyImageUpload(newId, draft.imageFile);
+      }
+      onAddCardToSectionAtIndex(payload, payload.boardSection, payload.positionIndex, newId);
     }
     pendingCardSaveRef.current = null;
     setCardSaveConfirmOpen(false);

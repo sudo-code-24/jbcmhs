@@ -1,5 +1,6 @@
 import type { FacultyCardItem } from "@/hooks/useFacultyBoard";
 import FacultyPhoto from "./FacultyPhoto";
+import { strapiMediaFullUrl } from "@/lib/strapi/publicMediaUrl";
 import { isLeadershipHighlight } from "@/lib/facultyBoardRoles";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +32,7 @@ export default function FacultyCard({
   featured = false,
 }: FacultyCardProps) {
   const isHighlighted = isLeadershipHighlight(card.role);
+  const photoSrc = strapiMediaFullUrl(card.image?.url);
 
   if (minimal) {
     if (boardSurface) {
@@ -46,7 +48,7 @@ export default function FacultyCard({
         >
           <div className="flex min-w-0 items-start gap-2.5">
             <FacultyPhoto
-              photoUrl={card.photoUrl}
+              photoSrc={photoSrc}
               name={card.name}
               className="h-8 w-8 sm:h-9 sm:w-9"
               iconClassName="h-[38%] w-[38%]"
@@ -68,7 +70,7 @@ export default function FacultyCard({
       >
         <div className="flex min-w-0 items-start gap-2">
           <FacultyPhoto
-            photoUrl={card.photoUrl}
+            photoSrc={photoSrc}
             name={card.name}
             className="h-8 w-8"
             iconClassName="h-[40%] w-[40%]"
@@ -109,7 +111,7 @@ export default function FacultyCard({
           )}
         >
           <FacultyPhoto
-            photoUrl={card.photoUrl}
+            photoSrc={photoSrc}
             name={card.name}
             className={cn(
               "border-border dark:border-white/15",
@@ -140,7 +142,7 @@ export default function FacultyCard({
         className={`flex ${compact ? "items-center gap-3" : "flex-col items-center gap-3 text-center"}`}
       >
         <FacultyPhoto
-          photoUrl={card.photoUrl}
+          photoSrc={photoSrc}
           name={card.name}
           className={cn(compact ? "h-14 w-14" : "h-30 w-30")}
         />

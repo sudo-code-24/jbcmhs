@@ -34,6 +34,7 @@ export default function AdminFacultyBoard() {
     upsertCardWithOrdering,
     moveCardWithinSectionToIndex,
     moveCardToSectionAtIndex,
+    registerFacultyImageUpload,
   } = useFacultyBoard({ autoPersist: false });
 
   const handleSaveLayoutCancel = () => {
@@ -118,6 +119,7 @@ export default function AdminFacultyBoard() {
         onMoveRowToBefore={moveRowToBefore}
         onUpdateRowDetail={updateRowDetail}
         onDeleteRow={deleteRow}
+        onRegisterFacultyImageUpload={registerFacultyImageUpload}
       />
 
       <ConfirmModal

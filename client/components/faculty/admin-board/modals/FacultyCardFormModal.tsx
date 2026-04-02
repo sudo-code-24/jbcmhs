@@ -1,6 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +41,19 @@ export function FacultyCardFormModal({
   onSubmit,
   isBusy = false,
 }: FacultyCardFormModalProps) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (draft.imageFile) {
+      const u = URL.createObjectURL(draft.imageFile);
+      setPreviewUrl(u);
+      return () => URL.revokeObjectURL(u);
+    }
+    setPreviewUrl(null);
+  }, [draft.imageFile]);
+
+  const displaySrc = previewUrl ?? draft.existingImageSrc ?? null;
+
   return (
     <Dialog
       open={open}
@@ -111,17 +125,32 @@ export function FacultyCardFormModal({
             </div>
 
             <div className={FACULTY_MODAL_FIELD_GROUP_CLASS}>
-              <Label htmlFor="faculty-photo" className="text-foreground">
-                Photo URL (optional)
+              <Label htmlFor="faculty-photo-file" className="text-foreground">
+                Photo (optional)
               </Label>
-              <Textarea
-                id="faculty-photo"
-                rows={3}
-                value={draft.photoUrl}
-                onChange={(e) =>
-                  onDraftChange((c) => ({ ...c, photoUrl: e.target.value }))
-                }
+              <Input
+                id="faculty-photo-file"
+                type="file"
+                accept="image/*"
+                className="cursor-pointer"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  onDraftChange((c) => ({ ...c, imageFile: f }));
+                }}
               />
+              <p className="text-xs text-muted-foreground">
+                Leave unchanged to keep the current photo. Upload runs after the card is saved to the server.
+              </p>
+              {displaySrc ? (
+                <div className="mt-2 overflow-hidden rounded-md border bg-muted/30 p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={displaySrc}
+                    alt=""
+                    className="mx-auto max-h-40 w-auto max-w-full object-contain"
+                  />
+                </div>
+              ) : null}
             </div>
 
             <details className="rounded-lg border bg-muted/30 p-3">

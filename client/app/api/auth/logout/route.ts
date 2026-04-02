@@ -1,70 +1,46 @@
-import { NextResponse } from "next/server";
-import { NextRequest } from "next/server";
-import { ADMIN_AUTH_COOKIE, AUTH_SESSION_COOKIE, AUTH_TOKEN_COOKIE } from "@/lib/adminAuth";
-
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
+import { NextRequest, NextResponse } from "next/server";
+import { STRAPI_JWT_COOKIE } from "@/lib/auth/strapiJwtVerify";
+import { shouldUseSecureCookie } from "@/lib/auth/requestCookieSecure";
+import { LEGACY_ADMIN_AUTH_COOKIE, LEGACY_AUTH_SESSION_COOKIE, LEGACY_AUTH_TOKEN_COOKIE } from "@/lib/adminAuth";
 
 const SITE_URL =
   process.env.SITE_URL ||
   process.env.NEXT_PUBLIC_SITE_URL ||
   "https://jbcmhs.netlify.app";
 
-function clearAuthCookies(response: NextResponse) {
-  response.cookies.set({
-    name: ADMIN_AUTH_COOKIE,
-    value: "",
-    path: "/",
-    maxAge: 0,
-  });
-  response.cookies.set({
-    name: AUTH_TOKEN_COOKIE,
-    value: "",
-    path: "/",
-    maxAge: 0,
-  });
-  response.cookies.set({
-    name: AUTH_SESSION_COOKIE,
-    value: "",
-    path: "/",
-    maxAge: 0,
-  });
+function clearAllAuthCookies(response: NextResponse, request: NextRequest) {
+  const secure = shouldUseSecureCookie(request);
+  const names = [
+    STRAPI_JWT_COOKIE,
+    LEGACY_ADMIN_AUTH_COOKIE,
+    LEGACY_AUTH_TOKEN_COOKIE,
+    LEGACY_AUTH_SESSION_COOKIE,
+  ];
+  for (const name of names) {
+    response.cookies.set({
+      name,
+      value: "",
+      path: "/",
+      maxAge: 0,
+      secure,
+      sameSite: "lax",
+      ...(name === STRAPI_JWT_COOKIE ? { httpOnly: true as const } : {}),
+    });
+  }
 }
 
 async function handleLogout(request: NextRequest): Promise<NextResponse> {
   try {
-    const token = request.cookies.get(AUTH_TOKEN_COOKIE)?.value || "";
-    const sessionId = request.cookies.get(AUTH_SESSION_COOKIE)?.value || "";
-
-    if (token && sessionId) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        await fetch(`${API_URL}/api/auth/logout`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "x-session-id": sessionId,
-          },
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-      } catch {
-        // Always clear client cookies even if backend logout fails or times out.
-      }
-    }
-
     const baseUrl = request.nextUrl?.origin || request.url;
     const response = NextResponse.redirect(baseUrl);
-    clearAuthCookies(response);
+    clearAllAuthCookies(response, request);
     return response;
   } catch {
-    // Fallback: redirect to login even if something unexpected fails (e.g. serverless edge cases)
     const fallbackUrl = process.env.NEXT_PUBLIC_VERCEL_URL
       ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/`
-      : process.env.URL || "https://jbcmhs.netlify.app/";
+      : process.env.URL || `${SITE_URL}/`;
     const response = NextResponse.redirect(fallbackUrl);
-    clearAuthCookies(response);
+    clearAllAuthCookies(response, request);
     return response;
   }
 }

@@ -5,7 +5,8 @@ import { User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type FacultyPhotoProps = {
-  photoUrl?: string;
+  /** Absolute or app-relative image URL for `<img src>` */
+  photoSrc?: string;
   name: string;
   /** Outer size classes (e.g. h-24 w-24) — circle includes border */
   className?: string;
@@ -19,14 +20,14 @@ type FacultyPhotoProps = {
  * Faculty avatar: real photo when URL works; otherwise centered user icon at ~20% opacity.
  */
 export default function FacultyPhoto({
-  photoUrl,
+  photoSrc,
   name,
   className,
   iconClassName,
   tone = "dark",
 }: FacultyPhotoProps) {
   const [failed, setFailed] = useState(false);
-  const trimmed = photoUrl?.trim();
+  const trimmed = photoSrc?.trim();
   const showImg = Boolean(trimmed) && !failed;
 
   return (

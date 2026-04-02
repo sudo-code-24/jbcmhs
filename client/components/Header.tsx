@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getSchoolInfo } from "@/lib/api";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { HeaderAuthSection } from "@/components/HeaderAuthSection";
 import { buttonVariants } from "@/components/ui/button";
@@ -19,6 +21,20 @@ const navItems = [
 
 export default function Header() {
   const pathname = usePathname();
+  const [brandingName, setBrandingName] = useState(DEFAULT_SCHOOL_INFO.name);
+  const [brandingTagline, setBrandingTagline] = useState(DEFAULT_SCHOOL_INFO.tagline);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getSchoolInfo().then((info) => {
+      if (cancelled || !info) return;
+      setBrandingName(info.name || DEFAULT_SCHOOL_INFO.name);
+      setBrandingTagline(info.tagline || DEFAULT_SCHOOL_INFO.tagline);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const renderIcon = (icon: (typeof navItems)[number]["icon"]) => {
     if (icon === "home") {
       return (
@@ -80,8 +96,8 @@ export default function Header() {
               />
             </Link>
             <div className="min-w-0">
-              <p className="truncate text-base font-bold leading-none text-primary">{DEFAULT_SCHOOL_INFO.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{DEFAULT_SCHOOL_INFO.tagline}</p>
+              <p className="truncate text-base font-bold leading-none text-primary">{brandingName}</p>
+              <p className="truncate text-xs text-muted-foreground">{brandingTagline}</p>
             </div>
           </div>
 

@@ -7,6 +7,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { createEvent, updateEvent } from "@/lib/api";
+import { schoolEventFieldsToFormData } from "@/lib/strapi/entityFormData";
+import { strapiMediaFullUrl } from "@/lib/strapi/publicMediaUrl";
 import { EVENT_TYPES, type Event } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button, type ButtonProps } from "@/components/ui/button";
@@ -29,7 +31,6 @@ const schema = z.object({
   date: z.string().min(1, "Date is required"),
   endDate: z.string().optional(),
   type: z.enum(EVENT_TYPES),
-  imageUrl: z.string().optional(),
 });
 
 type FormState = z.infer<typeof schema>;
@@ -38,6 +39,7 @@ export type EventFormProps = {
   mode?: "create" | "update";
   eventId?: number;
   initialValues?: Partial<FormState>;
+  existingImageSrc?: string;
   loading?: boolean;
   inline?: boolean;
   triggerLabel?: string;
@@ -62,13 +64,13 @@ const getDefaults = (initialValues?: Partial<FormState>): FormState => ({
   date: toInputDate(initialValues?.date),
   endDate: toInputDate(initialValues?.endDate),
   type: initialValues?.type ?? "event",
-  imageUrl: initialValues?.imageUrl ?? "",
 });
 
 const EventForm = ({
   mode = "create",
   eventId,
   initialValues,
+  existingImageSrc,
   loading: loadingProp,
   inline = false,
   triggerLabel = "Create Event",
@@ -83,6 +85,8 @@ const EventForm = ({
   const [open, setOpen] = useState(false);
   const [loadingLocal, setLoadingLocal] = useState(false);
   const [error, setError] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const loading = loadingProp ?? loadingLocal;
 
   const form = useForm<FormState>({
@@ -92,7 +96,19 @@ const EventForm = ({
 
   useEffect(() => {
     form.reset(getDefaults(initialValues));
+    setImageFile(null);
   }, [form, initialValues]);
+
+  useEffect(() => {
+    if (imageFile) {
+      const u = URL.createObjectURL(imageFile);
+      setPreviewUrl(u);
+      return () => URL.revokeObjectURL(u);
+    }
+    setPreviewUrl(null);
+  }, [imageFile]);
+
+  const displaySrc = previewUrl ?? existingImageSrc ?? null;
 
   const handleSubmit = useCallback(
     async (values: FormState) => {
@@ -100,17 +116,22 @@ const EventForm = ({
       setLoadingLocal(true);
       try {
         const payload = {
-          ...values,
+          title: values.title,
           description: values.description || "",
           date: values.date ? new Date(values.date).toISOString() : new Date().toISOString(),
           endDate: values.endDate ? new Date(values.endDate).toISOString() : undefined,
+          type: values.type,
         };
+        const fd = schoolEventFieldsToFormData(payload, imageFile);
         if (mode === "update" && !eventId) {
           throw new Error("Missing event id for update.");
         }
         const event =
-          mode === "update" ? await updateEvent(eventId!, payload) : await createEvent(payload);
-        if (mode === "create") form.reset(getDefaults());
+          mode === "update" ? await updateEvent(eventId!, fd) : await createEvent(fd);
+        if (mode === "create") {
+          form.reset(getDefaults());
+          setImageFile(null);
+        }
         if (!inline) setOpen(false);
         onSuccess?.(event);
         if (!onSuccess) router.refresh();
@@ -120,7 +141,7 @@ const EventForm = ({
         setLoadingLocal(false);
       }
     },
-    [mode, eventId, inline, onSuccess, router]
+    [mode, eventId, inline, onSuccess, router, form, imageFile],
   );
 
   const formContent = (
@@ -204,19 +225,31 @@ const EventForm = ({
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="imageUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Image URL (optional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://..." {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="space-y-2">
+            <label htmlFor="event-image" className="text-sm font-medium">
+              Image (optional)
+            </label>
+            <Input
+              id="event-image"
+              type="file"
+              accept="image/*"
+              className="cursor-pointer"
+              onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {mode === "update" ? "Leave empty to keep the current image." : undefined}
+            </p>
+            {displaySrc ? (
+              <div className="overflow-hidden rounded-md border bg-muted/30 p-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={displaySrc}
+                  alt=""
+                  className="mx-auto max-h-48 w-auto max-w-full object-contain"
+                />
+              </div>
+            ) : null}
+          </div>
           <CardFooter className="px-0 pb-0">
             <div className="flex w-full justify-end gap-2">
               <Button type="submit" disabled={loading}>
@@ -225,8 +258,10 @@ const EventForm = ({
                     <LoadingSpinner />
                     {mode === "update" ? "Updating..." : "Adding..."}
                   </span>
+                ) : mode === "update" ? (
+                  "Update Event"
                 ) : (
-                  mode === "update" ? "Update Event" : "Add Event"
+                  "Add Event"
                 )}
               </Button>
               {mode === "update" && onCancel ? (

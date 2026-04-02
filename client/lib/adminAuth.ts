@@ -1,20 +1,7 @@
-export const ADMIN_AUTH_COOKIE = "hs_admin_session";
-export const AUTH_TOKEN_COOKIE = "hs_auth_token";
-export const AUTH_SESSION_COOKIE = "hs_auth_session_id";
-
-function getAdminSessionToken(): string {
-  return process.env.ADMIN_SESSION_TOKEN || "dev-admin-session-token";
-}
-
-export function isAdminConfigValid(): boolean {
-  return Boolean(getAdminSessionToken());
-}
-
-export function isValidAdminSessionCookie(cookieValue: string | undefined): boolean {
-  const token = getAdminSessionToken();
-  return Boolean(token && cookieValue && cookieValue === token);
-}
-
-export function getAdminSessionTokenValue(): string {
-  return getAdminSessionToken();
-}
+/**
+ * Legacy cookie names from the Express + Redis session stack.
+ * Kept so logout/middleware can clear them after migrating to Strapi JWT-only auth.
+ */
+export const LEGACY_ADMIN_AUTH_COOKIE = "hs_admin_session";
+export const LEGACY_AUTH_TOKEN_COOKIE = "hs_auth_token";
+export const LEGACY_AUTH_SESSION_COOKIE = "hs_auth_session_id";

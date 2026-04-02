@@ -1,21 +1,24 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import type { StrapiMedia } from "@/lib/types";
+import { strapiMediaFullUrl } from "@/lib/strapi/publicMediaUrl";
 
 export type ShowcaseBlogPost = {
   id: number;
   title: string;
   text: string;
-  imageUrl?: string;
+  image?: StrapiMedia;
 };
 
 export default function ShowcasePostCard({ post }: { post: ShowcaseBlogPost }) {
   const href = `/announcements/${post.id}`;
+  const imgSrc = strapiMediaFullUrl(post.image?.url) ?? "/placeholder.jpg";
 
   return (
     <Card className="flex h-full flex-col overflow-hidden text-left">
       <div className="h-36 overflow-hidden">
-        <img src={post.imageUrl ?? "/placeholder.jpg"} alt={post.title} className="h-full w-full object-cover" />
+        <img src={imgSrc} alt={post.title} className="h-full w-full object-cover" />
       </div>
       <CardContent className="flex-1 p-4">
         <h3 className="line-clamp-2 text-sm font-semibold">{post.title}</h3>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -24,7 +24,6 @@ const schema = z.object({
   content: z.string().min(1, "Content is required"),
   category: z.enum(ANNOUNCEMENT_CATEGORIES),
   datePosted: z.string().optional(),
-  imageUrl: z.string().optional(),
 });
 
 export type AnnouncementFormValues = z.infer<typeof schema>;
@@ -32,14 +31,16 @@ export type AnnouncementFormValues = z.infer<typeof schema>;
 type AnnouncementFormProps = {
   mode: "create" | "update";
   initialValues?: Partial<AnnouncementFormValues>;
+  /** Resolved URL for current Strapi image (edit mode) */
+  existingImageSrc?: string;
   loading?: boolean;
-  onSubmit: (values: AnnouncementFormValues) => Promise<void> | void;
+  onSubmit: (values: AnnouncementFormValues, imageFile: File | null) => Promise<void> | void;
   onCancel?: () => void;
 };
 
 const getDefaults = (initialValues?: Partial<AnnouncementFormValues>): AnnouncementFormValues => {
   const inputDate = initialValues?.datePosted
-    ? new Date(initialValues.datePosted).toISOString().slice(0, 16)
+    ? new Date(initialValues.datePosted).toISOString().slice(0, 10)
     : "";
 
   return {
@@ -47,17 +48,20 @@ const getDefaults = (initialValues?: Partial<AnnouncementFormValues>): Announcem
     content: initialValues?.content ?? "",
     category: initialValues?.category ?? "General",
     datePosted: inputDate,
-    imageUrl: initialValues?.imageUrl ?? "",
   };
 };
 
 const AnnouncementForm = ({
   mode,
   initialValues,
+  existingImageSrc,
   loading,
   onSubmit,
   onCancel,
 }: AnnouncementFormProps) => {
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   const form = useForm<AnnouncementFormValues>({
     resolver: zodResolver(schema),
     defaultValues: getDefaults(initialValues),
@@ -65,11 +69,26 @@ const AnnouncementForm = ({
 
   useEffect(() => {
     form.reset(getDefaults(initialValues));
+    setImageFile(null);
   }, [form, initialValues]);
+
+  useEffect(() => {
+    if (imageFile) {
+      const u = URL.createObjectURL(imageFile);
+      setPreviewUrl(u);
+      return () => URL.revokeObjectURL(u);
+    }
+    setPreviewUrl(null);
+  }, [imageFile]);
+
+  const displaySrc = previewUrl ?? existingImageSrc ?? null;
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        onSubmit={form.handleSubmit((values) => onSubmit(values, imageFile))}
+        className="space-y-4"
+      >
         <FormField
           control={form.control}
           name="title"
@@ -131,19 +150,34 @@ const AnnouncementForm = ({
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="imageUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Image URL (optional)</FormLabel>
-              <FormControl>
-                <Input placeholder="https://..." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+
+        <div className="space-y-2">
+          <label htmlFor="announcement-image" className="text-sm font-medium">
+            Image (optional)
+          </label>
+          <Input
+            id="announcement-image"
+            type="file"
+            accept="image/*"
+            className="cursor-pointer"
+            onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+          />
+          <p className="text-xs text-muted-foreground">
+            {mode === "update"
+              ? "Leave empty to keep the current image."
+              : "Upload a file to attach a hero image."}
+          </p>
+          {displaySrc ? (
+            <div className="overflow-hidden rounded-md border bg-muted/30 p-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={displaySrc}
+                alt=""
+                className="mx-auto max-h-48 w-auto max-w-full object-contain"
+              />
+            </div>
+          ) : null}
+        </div>
 
         <CardFooter className="px-0 pb-0">
           <div className="flex w-full justify-end gap-2">

@@ -17,6 +17,8 @@ import {
 import AnnouncementForm, {
   type AnnouncementFormValues,
 } from "./AnnouncementForm";
+import { announcementFieldsToFormData } from "@/lib/strapi/entityFormData";
+import { strapiMediaFullUrl } from "@/lib/strapi/publicMediaUrl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,21 +42,27 @@ const AdminAnnouncements = ({ initial }: AdminAnnouncementsProps) => {
     setOpen(false);
   };
 
-  const handleSubmit = async (values: AnnouncementFormValues) => {
+  const handleSubmit = async (values: AnnouncementFormValues, imageFile: File | null) => {
     setError("");
     setLoading(true);
     try {
-      const payload = {
-        ...values,
-        datePosted: values.datePosted
-          ? new Date(values.datePosted).toISOString()
-          : undefined,
-      };
+      const datePosted = values.datePosted
+        ? new Date(`${values.datePosted}T12:00:00`).toISOString()
+        : undefined;
+      const fd = announcementFieldsToFormData(
+        {
+          title: values.title,
+          content: values.content,
+          category: values.category,
+          datePosted,
+        },
+        imageFile,
+      );
       if (editing) {
-        const updated = await updateAnnouncement(editing.id, payload);
+        const updated = await updateAnnouncement(editing.id, fd);
         setList((prev) => prev.map((a) => (a.id === editing.id ? updated : a)));
       } else {
-        const created = await createAnnouncement(payload);
+        const created = await createAnnouncement(fd);
         setList((prev) => [created, ...prev]);
       }
       resetForm();
@@ -123,10 +131,10 @@ const AdminAnnouncements = ({ initial }: AdminAnnouncementsProps) => {
                     content: editing.content,
                     category: editing.category,
                     datePosted: editing.datePosted,
-                    imageUrl: editing.imageUrl ?? "",
                   }
                 : undefined
             }
+            existingImageSrc={editing ? strapiMediaFullUrl(editing.image?.url) : undefined}
             loading={loading}
             onSubmit={handleSubmit}
             onCancel={editing ? resetForm : undefined}

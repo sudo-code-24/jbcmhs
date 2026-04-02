@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import initialFacultyCards from "@/data/facultyBoard.initial.json";
 import type { FacultyCardItem } from "@/lib/types";
-import { getFacultyBoard, saveFacultyBoard } from "@/lib/api";
+import { facultyMemberImageFormData } from "@/lib/strapi/entityFormData";
+import { getFacultyBoard, saveFacultyBoard, uploadFacultyMemberImage } from "@/lib/api";
 
 export type { FacultyCardItem };
 
@@ -74,6 +75,7 @@ export function useFacultyBoard(options: UseFacultyBoardOptions = {}) {
   /** Active server saves (persist + commitLayout) for admin loading UI */
   const [savingCount, setSavingCount] = useState(0);
   const savedBoardRef = useRef<FacultyBoardState | null>(null);
+  const pendingFacultyImagesRef = useRef<Map<string, File>>(new Map());
 
   const isSaving = savingCount > 0;
 
@@ -145,10 +147,29 @@ export function useFacultyBoard(options: UseFacultyBoardOptions = {}) {
     };
   }, [autoPersist, loadFromApi]);
 
+  const registerFacultyImageUpload = useCallback((cardId: string, file: File | null) => {
+    const id = cardId.trim();
+    if (!id) return;
+    if (file && file.size > 0) pendingFacultyImagesRef.current.set(id, file);
+    else pendingFacultyImagesRef.current.delete(id);
+  }, []);
+
   const pushSavedToServer = useCallback(async (state: FacultyBoardState): Promise<boolean> => {
     try {
       await saveFacultyBoard(state);
-      savedBoardRef.current = cloneBoard(state);
+      const pending = Array.from(pendingFacultyImagesRef.current.entries());
+      pendingFacultyImagesRef.current.clear();
+      for (const [importKey, file] of pending) {
+        await uploadFacultyMemberImage(importKey, facultyMemberImageFormData(file));
+      }
+      if (pending.length > 0) {
+        const data = await getFacultyBoard();
+        const refreshed = { rows: data.rows, cards: normalizeCards(data.cards) };
+        setBoard(refreshed);
+        savedBoardRef.current = cloneBoard(refreshed);
+      } else {
+        savedBoardRef.current = cloneBoard(state);
+      }
       setSavedVersion((v) => v + 1);
       window.dispatchEvent(new CustomEvent(FACULTY_BOARD_STORAGE_EVENT));
       try {
@@ -446,9 +467,15 @@ export function useFacultyBoard(options: UseFacultyBoardOptions = {}) {
   );
 
   const addCardToSectionAtIndex = useCallback(
-    (card: Omit<FacultyCardItem, "id">, targetSection: string, targetIndex1Based: number) => {
+    (
+      card: Omit<FacultyCardItem, "id">,
+      targetSection: string,
+      targetIndex1Based: number,
+      preferredId?: string,
+    ) => {
       const id =
-        typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `f-${Date.now()}`;
+        (preferredId && preferredId.trim()) ||
+        (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `f-${Date.now()}`);
       upsertCardWithOrdering({
         ...card,
         id,
@@ -456,7 +483,7 @@ export function useFacultyBoard(options: UseFacultyBoardOptions = {}) {
         positionIndex: Math.max(1, Math.floor(targetIndex1Based) || 1),
       });
     },
-    [upsertCardWithOrdering]
+    [upsertCardWithOrdering],
   );
 
   const moveCardToSectionAtIndex = useCallback(
@@ -544,5 +571,6 @@ export function useFacultyBoard(options: UseFacultyBoardOptions = {}) {
     moveRowToBefore,
     addCardToSectionAtIndex,
     moveCardToSectionAtIndex,
+    registerFacultyImageUpload,
   };
 }

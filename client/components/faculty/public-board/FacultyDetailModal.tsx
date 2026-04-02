@@ -2,6 +2,7 @@
 
 import type { FacultyCardItem } from "@/hooks/useFacultyBoard";
 import FacultyPhoto from "../FacultyPhoto";
+import { strapiMediaFullUrl } from "@/lib/strapi/publicMediaUrl";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +30,7 @@ export function FacultyDetailModal({
         {card ? (
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
             <FacultyPhoto
-              photoUrl={card.photoUrl}
+              photoSrc={strapiMediaFullUrl(card.image?.url)}
               name={card.name}
               tone="light"
               className="mx-auto h-32 w-32 shrink-0 sm:mx-0 sm:h-36 sm:w-36"

@@ -3,14 +3,15 @@
 import { useState } from "react";
 import Image from "next/image";
 import type { Announcement } from "@/lib/types";
+import { strapiMediaFullUrl } from "@/lib/strapi/publicMediaUrl";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { AnnouncementModalProps } from "./types";
 
 const AnnouncementModal = ({ open, onClose, announcement, longDate }: AnnouncementModalProps) => {
   const [imgError, setImgError] = useState(false);
-  const imgSrc =
-    announcement.imageUrl?.trim() && !imgError ? announcement.imageUrl.trim()! : "/placeholder.jpg";
+  const resolved = strapiMediaFullUrl(announcement.image?.url);
+  const imgSrc = resolved && !imgError ? resolved : "/placeholder.jpg";
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
@@ -27,7 +28,7 @@ const AnnouncementModal = ({ open, onClose, announcement, longDate }: Announceme
         </time>
       </div>
 
-      {announcement.imageUrl && (
+      {resolved ? (
         <div className="relative mb-5 h-56 overflow-hidden rounded-2xl border bg-muted/50 sm:h-72">
           <Image
             src={imgSrc}
@@ -38,7 +39,7 @@ const AnnouncementModal = ({ open, onClose, announcement, longDate }: Announceme
             onError={() => setImgError(true)}
           />
         </div>
-      )}
+      ) : null}
 
       <p className="text-lg sm:text-xl">{announcement.content}</p>
       </DialogContent>

@@ -31,9 +31,13 @@ export default function SchoolInfoDetails({ schoolInfo, isLoading, isUsingFallba
       </p>
       <p>
         <span className="font-medium text-foreground">Facebook Page: </span>
-        <a href="https://www.facebook.com/profile.php?id=61565156464436" target="_blank" rel="noopener noreferrer">
-          Click here
-        </a>
+        {schoolInfo.facebookUrl?.trim() ? (
+          <a href={schoolInfo.facebookUrl.trim()} target="_blank" rel="noopener noreferrer">
+            Click here
+          </a>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
       </p>
     </div>
   );

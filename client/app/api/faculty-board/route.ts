@@ -1,47 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  ADMIN_AUTH_COOKIE,
-  AUTH_SESSION_COOKIE,
-  AUTH_TOKEN_COOKIE,
-  isValidAdminSessionCookie,
-} from "@/lib/adminAuth";
-import { cookies } from "next/headers";
-
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
-
-function ensureAuth(): { token: string; sessionId: string } | NextResponse {
-  const cookieStore = cookies();
-  const token = cookieStore.get(AUTH_TOKEN_COOKIE)?.value || "";
-  const sessionId = cookieStore.get(AUTH_SESSION_COOKIE)?.value || "";
-  const sessionCookie = cookieStore.get(ADMIN_AUTH_COOKIE)?.value;
-  if (!isValidAdminSessionCookie(sessionCookie) || !token || !sessionId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  return { token, sessionId };
-}
+import { requireContentEditor } from "@/lib/auth/requireContentEditor";
+import { syncFacultyBoardToStrapi } from "@/lib/strapi/facultyBoardSync";
+import type { FacultyCardItem } from "@/lib/types";
 
 export async function PUT(request: NextRequest) {
-  const auth = ensureAuth();
+  const auth = await requireContentEditor(request);
   if (auth instanceof NextResponse) return auth;
-  const { token, sessionId } = auth;
 
-  const body = await request.text();
-  const response = await fetch(`${API_URL}/api/faculty-board`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      "x-session-id": sessionId,
-    },
-    body: body || undefined,
-    cache: "no-store",
-  });
-  const data = (await response.json().catch(() => null)) as unknown;
-  if (!response.ok) {
+  let body: { rows: string[]; cards: FacultyCardItem[] };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  try {
+    await syncFacultyBoardToStrapi(body);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
     return NextResponse.json(
-      data ?? { error: "Request failed" },
-      { status: response.status }
+      { error: e instanceof Error ? e.message : "Request failed" },
+      { status: 500 }
     );
   }
-  return NextResponse.json(data);
 }

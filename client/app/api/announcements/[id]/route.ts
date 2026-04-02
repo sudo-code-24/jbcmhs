@@ -1,78 +1,90 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  ADMIN_AUTH_COOKIE,
-  AUTH_SESSION_COOKIE,
-  AUTH_TOKEN_COOKIE,
-  isValidAdminSessionCookie,
-} from "@/lib/adminAuth";
-import { cookies } from "next/headers";
+import { requireContentEditor } from "@/lib/auth/requireContentEditor";
+import { debugLogFormData } from "@/lib/strapi/formDataDebug";
+import { strapiDeleteAnnouncement, strapiUpdateAnnouncement } from "@/lib/strapi/cmsWrites";
+import { strapiAnnouncementToClient } from "@/lib/strapi/transformers";
+import type { AnnouncementCategory } from "@/lib/types";
+import { ANNOUNCEMENT_CATEGORIES } from "@/lib/types";
 
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
-
-function ensureAuth(): { token: string; sessionId: string } | NextResponse {
-  const cookieStore = cookies();
-  const token = cookieStore.get(AUTH_TOKEN_COOKIE)?.value || "";
-  const sessionId = cookieStore.get(AUTH_SESSION_COOKIE)?.value || "";
-  const sessionCookie = cookieStore.get(ADMIN_AUTH_COOKIE)?.value;
-  if (!isValidAdminSessionCookie(sessionCookie) || !token || !sessionId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  return { token, sessionId };
+function parseCategory(raw: FormDataEntryValue | null): AnnouncementCategory | undefined {
+  const s = String(raw ?? "").trim();
+  if (!s) return undefined;
+  return (ANNOUNCEMENT_CATEGORIES as readonly string[]).includes(s) ? (s as AnnouncementCategory) : undefined;
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = ensureAuth();
+  const auth = await requireContentEditor(request);
   if (auth instanceof NextResponse) return auth;
-  const { token, sessionId } = auth;
   const { id } = await params;
 
-  const body = await request.text();
-  const response = await fetch(`${API_URL}/api/announcements/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      "x-session-id": sessionId,
-    },
-    body: body || undefined,
-    cache: "no-store",
-  });
-  const data = (await response.json().catch(() => null)) as unknown;
-  if (!response.ok) {
-    return NextResponse.json(
-      data ?? { error: "Request failed" },
-      { status: response.status }
-    );
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
   }
-  return NextResponse.json(data);
+
+  const titleRaw = formData.get("title");
+  const contentRaw = formData.get("content");
+  const categoryRaw = formData.get("category");
+  const datePostedRaw = String(formData.get("datePosted") ?? "").trim();
+
+  const title = titleRaw != null && String(titleRaw).trim() !== "" ? String(titleRaw).trim() : undefined;
+  const content = contentRaw != null && String(contentRaw).trim() !== "" ? String(contentRaw).trim() : undefined;
+  const category = categoryRaw != null ? parseCategory(categoryRaw) : undefined;
+  const datePosted = datePostedRaw ? new Date(datePostedRaw).toISOString() : undefined;
+
+  const file = formData.get("files.image");
+  const imageFile = file instanceof File && file.size > 0 ? file : undefined;
+
+  debugLogFormData(formData, `PUT /api/announcements/${id}`);
+
+  if (
+    title === undefined &&
+    content === undefined &&
+    category === undefined &&
+    datePosted === undefined &&
+    !imageFile
+  ) {
+    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+  }
+
+  try {
+    const raw = await strapiUpdateAnnouncement(id, {
+      title,
+      content,
+      category,
+      datePosted,
+      imageFile,
+      imageFileName: imageFile?.name,
+    });
+    return NextResponse.json(strapiAnnouncementToClient(raw));
+  } catch (e) {
+    const status = e instanceof Error && "status" in e ? (e as Error & { status: number }).status : 500;
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.error("[announcements PUT]", e);
+    }
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Request failed" }, { status });
+  }
 }
 
 export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = ensureAuth();
+  const auth = await requireContentEditor(request);
   if (auth instanceof NextResponse) return auth;
-  const { token, sessionId } = auth;
   const { id } = await params;
 
-  const response = await fetch(`${API_URL}/api/announcements/${id}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "x-session-id": sessionId,
-    },
-    cache: "no-store",
-  });
-  if (response.status === 204) {
+  try {
+    await strapiDeleteAnnouncement(id);
     return new NextResponse(null, { status: 204 });
+  } catch (e) {
+    const status = e instanceof Error && "status" in e ? (e as Error & { status: number }).status : 500;
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Request failed" }, { status });
   }
-  const data = (await response.json().catch(() => null)) as unknown;
-  return NextResponse.json(
-    data ?? { error: "Request failed" },
-    { status: response.status }
-  );
 }

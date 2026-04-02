@@ -1,57 +1,31 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import {
-  ADMIN_AUTH_COOKIE,
-  AUTH_SESSION_COOKIE,
-  AUTH_TOKEN_COOKIE,
-  isValidAdminSessionCookie,
-} from "@/lib/adminAuth";
+import { type NextRequest, NextResponse } from "next/server";
+import { requireStrapiAdmin } from "@/lib/auth/strapiSession";
+import { adminDeleteUserById, adminFindUserByUsername } from "@/lib/strapi/strapiUsersApi";
 
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
+type Params = { params: Promise<{ username: string }> };
 
-function ensureAdminAccess(): NextResponse | null {
-  const cookieStore = cookies();
-  const sessionCookie = cookieStore.get(ADMIN_AUTH_COOKIE)?.value;
-  const token = cookieStore.get(AUTH_TOKEN_COOKIE)?.value || "";
-  const sessionId = cookieStore.get(AUTH_SESSION_COOKIE)?.value || "";
-  if (!isValidAdminSessionCookie(sessionCookie) || !token || !sessionId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  return null;
-}
+export async function DELETE(request: NextRequest, { params }: Params) {
+  const gate = await requireStrapiAdmin(request);
+  if (gate instanceof NextResponse) return gate;
 
-type Params = {
-  params: { username: string };
-};
-
-export async function DELETE(_request: Request, { params }: Params) {
-  const unauthorized = ensureAdminAccess();
-  if (unauthorized) return unauthorized;
-  const token = cookies().get(AUTH_TOKEN_COOKIE)?.value || "";
-  const sessionId = cookies().get(AUTH_SESSION_COOKIE)?.value || "";
-
-  const username = decodeURIComponent(params.username || "").trim();
+  const { username: raw } = await params;
+  const username = decodeURIComponent(raw || "").trim().toLowerCase();
   if (!username) {
     return NextResponse.json({ error: "Username is required" }, { status: 400 });
   }
 
-  let response: Response;
-  try {
-    response = await fetch(`${API_URL}/api/auth/users/${encodeURIComponent(username)}`, {
-      method: "DELETE",
-      cache: "no-store",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "x-session-id": sessionId,
-      },
-    });
-  } catch {
-    return NextResponse.json({ error: "Authentication service is unavailable" }, { status: 503 });
+  const user = await adminFindUserByUsername(username);
+  if (!user?.id) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  if (!response.ok) {
-    const data = (await response.json().catch(() => null)) as { error?: string } | null;
-    return NextResponse.json({ error: data?.error || "Delete failed" }, { status: response.status });
+  try {
+    void gate.jwt;
+    await adminDeleteUserById(user.id);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Delete failed";
+    return NextResponse.json({ error: msg }, { status: 502 });
   }
+
   return new NextResponse(null, { status: 204 });
 }

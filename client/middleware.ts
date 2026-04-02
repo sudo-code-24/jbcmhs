@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ADMIN_AUTH_COOKIE, isValidAdminSessionCookie } from "@/lib/adminAuth";
+import { STRAPI_JWT_COOKIE } from "@/lib/auth/strapiJwtVerify";
 
+/**
+ * Only check that the session cookie is present. JWT signature/expiry is verified
+ * in Node (e.g. `app/admin/page.tsx`, Route Handlers). Edge middleware often lacks
+ * the same `process.env` Strapi secret as the Node server, which caused valid
+ * logins to bounce while `/api/auth/me` still returned 200.
+ */
 export function middleware(request: NextRequest) {
-  const cookieValue = request.cookies.get(ADMIN_AUTH_COOKIE)?.value;
-  if (isValidAdminSessionCookie(cookieValue)) {
+  const jwt = request.cookies.get(STRAPI_JWT_COOKIE)?.value;
+  if (jwt) {
     return NextResponse.next();
   }
 

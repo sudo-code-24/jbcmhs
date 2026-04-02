@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import EventForm from "./EventForm";
+import { strapiMediaFullUrl } from "@/lib/strapi/publicMediaUrl";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 
 type AdminEventsProps = {
@@ -72,8 +73,8 @@ const AdminEvents = ({ initial }: AdminEventsProps) => {
                       date: ev.date,
                       endDate: ev.endDate ?? "",
                       type: ev.type,
-                      imageUrl: ev.imageUrl ?? "",
                     }}
+                    existingImageSrc={strapiMediaFullUrl(ev.image?.url)}
                     triggerLabel="Edit"
                     triggerVariant="ghost"
                     triggerSize="sm"

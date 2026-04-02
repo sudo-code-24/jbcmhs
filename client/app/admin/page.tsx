@@ -1,24 +1,34 @@
-import { getAnnouncements, getEvents } from "@/lib/api";
-import AdminDashboardTabs, { type AdminTabValue } from "@/components/admin/AdminDashboardTabs";
+import { DEFAULT_SCHOOL_INFO } from "@/config/schoolInfo";
+import { getAnnouncements, getEvents, getSchoolInfo } from "@/lib/api";
+import AdminDashboardTabs, {
+  type AdminTabValue,
+} from "@/components/admin/AdminDashboardTabs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  ADMIN_AUTH_COOKIE,
-  AUTH_SESSION_COOKIE,
-  AUTH_TOKEN_COOKIE,
-  isValidAdminSessionCookie,
-} from "@/lib/adminAuth";
-
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
+  STRAPI_JWT_COOKIE,
+  fetchStrapiMe,
+  resolveAppRole,
+  verifyStrapiJwt,
+} from "@/lib/auth/strapiSession";
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
 
-function resolveAdminTab(raw: string | string[] | undefined, isAdmin: boolean): AdminTabValue {
+function resolveAdminTab(
+  raw: string | string[] | undefined,
+  isAdmin: boolean,
+): AdminTabValue {
   const t = Array.isArray(raw) ? raw[0] : raw;
   if (!t || typeof t !== "string") return "announcements";
   if (t === "users") return isAdmin ? "users" : "announcements";
-  if (t === "announcements" || t === "events" || t === "faculty") return t;
+  if (
+    t === "announcements" ||
+    t === "events" ||
+    t === "faculty" ||
+    t === "school"
+  )
+    return t;
   return "announcements";
 }
 
@@ -27,44 +37,29 @@ export default async function AdminPage({
 }: {
   searchParams: { tab?: string | string[] };
 }) {
-  const cookieStore = cookies();
-  const sessionCookie = cookieStore.get(ADMIN_AUTH_COOKIE)?.value;
-  const token = cookieStore.get(AUTH_TOKEN_COOKIE)?.value || "";
-  const sessionId = cookieStore.get(AUTH_SESSION_COOKIE)?.value || "";
-  if (!isValidAdminSessionCookie(sessionCookie)) {
+  const jwt = cookies().get(STRAPI_JWT_COOKIE)?.value || "";
+  if (!jwt || !(await verifyStrapiJwt(jwt))) {
     redirect("/login?next=/admin");
   }
 
   let currentUserRole: string | null = null;
   let currentUsername: string | null = null;
-  if (token && sessionId) {
-    try {
-      const meRes = await fetch(`${API_URL}/api/auth/me`, {
-        cache: "no-store",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "x-session-id": sessionId,
-        },
-      });
-      if (meRes.ok) {
-        const me = (await meRes.json()) as {
-          role?: string;
-          username?: string;
-          user?: { username?: string };
-        };
-        currentUserRole = me.role ?? null;
-        currentUsername = me.username ?? me.user?.username ?? null;
-      }
-    } catch {
-      // Ignore - user may still access announcements/events
+  try {
+    const me = await fetchStrapiMe(jwt);
+    if (me) {
+      currentUserRole = resolveAppRole(me);
+      currentUsername = me.username ?? null;
     }
+  } catch {
+    // fall through — tabs still usable for content
   }
 
   const isAdmin = currentUserRole === "admin";
 
-  const [announcements, events] = await Promise.all([
+  const [announcements, events, schoolProfile] = await Promise.all([
     getAnnouncements().catch(() => []),
     getEvents().catch(() => []),
+    getSchoolInfo().catch(() => null),
   ]);
 
   const defaultTab = resolveAdminTab(searchParams.tab, isAdmin);
@@ -73,9 +68,12 @@ export default async function AdminPage({
     <div className="container-wide py-3 sm:py-4">
       <div className="page-radial-surface text-foreground dark:text-slate-100">
         <div className="mb-4 border-b border-border pb-4 dark:border-white/[0.06]">
-          <h1 className="text-xl font-bold text-primary dark:text-slate-50 sm:text-2xl">Admin</h1>
+          <h1 className="text-xl font-bold text-primary dark:text-slate-50 sm:text-2xl">
+            Admin
+          </h1>
           <p className="mt-2 text-xs text-muted-foreground sm:text-sm">
-            Manage announcements, events, and the faculty board layout.
+            Manage announcements, events, faculty board, and school profile
+            content.
           </p>
         </div>
 
@@ -83,6 +81,7 @@ export default async function AdminPage({
           defaultTab={defaultTab}
           announcements={announcements}
           events={events}
+          schoolProfile={schoolProfile ?? DEFAULT_SCHOOL_INFO}
           isAdmin={isAdmin}
           currentUsername={currentUsername}
         />

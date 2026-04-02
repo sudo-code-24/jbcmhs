@@ -1,36 +1,41 @@
-import { NextResponse } from "next/server";
-import {
-  ADMIN_AUTH_COOKIE,
-  AUTH_SESSION_COOKIE,
-  AUTH_TOKEN_COOKIE,
-  getAdminSessionTokenValue,
-  isAdminConfigValid,
-} from "@/lib/adminAuth";
+import { NextRequest, NextResponse } from "next/server";
+import { cookieMaxAgeSecondsFromJwt, STRAPI_JWT_COOKIE } from "@/lib/auth/strapiSession";
+import { shouldUseSecureCookie } from "@/lib/auth/requestCookieSecure";
+import { getStrapiUrl } from "@/lib/strapi/config";
 
 type LoginRequestBody = {
   email?: string;
   password?: string;
 };
 
-type ServerLoginResponse = {
-  success?: boolean;
-  requiresPasswordChange?: boolean;
-  error?: string;
-  token?: string;
-  sessionId?: string;
-  expiresAt?: number;
+type StrapiAuthResponse = {
+  jwt?: string;
+  user?: { id?: number; email?: string; username?: string };
+  error?: { message?: string };
+  data?: { jwt?: string; user?: unknown };
 };
 
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "https://jbcmhs.onrender.com";
-
-export async function POST(request: Request) {
-  if (!isAdminConfigValid()) {
-    return NextResponse.json(
-      { error: "Admin auth is not configured. Set ADMIN_SESSION_TOKEN." },
-      { status: 500 }
-    );
+function extractAuthJwt(body: unknown): string | undefined {
+  if (!body || typeof body !== "object") return undefined;
+  const o = body as Record<string, unknown>;
+  if (typeof o.jwt === "string" && o.jwt.length > 0) return o.jwt;
+  const nested = o.data;
+  if (nested && typeof nested === "object" && typeof (nested as Record<string, unknown>).jwt === "string") {
+    const j = (nested as Record<string, unknown>).jwt;
+    return typeof j === "string" && j.length > 0 ? j : undefined;
   }
+  return undefined;
+}
 
+function getStrapiBase(): string {
+  try {
+    return getStrapiUrl();
+  } catch {
+    throw new Error("STRAPI_URL is not configured");
+  }
+}
+
+export async function POST(request: NextRequest) {
   let body: LoginRequestBody;
   try {
     body = (await request.json()) as LoginRequestBody;
@@ -38,71 +43,54 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const email = String(body.email ?? "").trim();
+  const rawIdentifier = String(body.email ?? "").trim();
   const password = String(body.password ?? "");
 
-  if (!email || !password) {
-    return NextResponse.json({ error: "email and password are required" }, { status: 400 });
+  if (!rawIdentifier || !password) {
+    return NextResponse.json({ error: "Email or username and password are required" }, { status: 400 });
   }
+
+  /** Strapi matches email case-insensitively; username is case-sensitive in DB. */
+  const identifier = rawIdentifier.includes("@") ? rawIdentifier.toLowerCase() : rawIdentifier;
 
   let authResponse: Response;
   try {
-    authResponse = await fetch(`${API_URL}/api/auth/login`, {
+    authResponse = await fetch(`${getStrapiBase()}/api/auth/local`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ identifier, password }),
       cache: "no-store",
     });
   } catch {
     return NextResponse.json({ error: "Authentication service is unavailable" }, { status: 503 });
   }
 
-  const authData = (await authResponse.json().catch(() => null)) as ServerLoginResponse | null;
+  const authData = (await authResponse.json().catch(() => null)) as StrapiAuthResponse | null;
   if (!authResponse.ok) {
-    if (authData?.requiresPasswordChange) {
-      return NextResponse.json(
-        {
-          error: authData.error || "Default password must be changed before signing in",
-          requiresPasswordChange: true,
-        },
-        { status: 403 }
-      );
-    }
-    return NextResponse.json({ error: authData?.error || "Invalid credentials" }, { status: 401 });
+    const msg =
+      authData?.error?.message ||
+      (typeof authData === "object" && authData && "message" in authData
+        ? String((authData as { message?: string }).message)
+        : null) ||
+      "Invalid credentials";
+    return NextResponse.json({ error: msg }, { status: 401 });
   }
 
-  if (!authData?.token || !authData?.sessionId || !authData?.expiresAt) {
+  const jwt = extractAuthJwt(authData);
+  if (!jwt) {
     return NextResponse.json({ error: "Invalid authentication response" }, { status: 502 });
   }
 
-  const response = NextResponse.json({ success: true });
-  const maxAge = Math.max(1, Math.floor((authData.expiresAt - Date.now()) / 1000));
-  response.cookies.set({
-    name: ADMIN_AUTH_COOKIE,
-    value: getAdminSessionTokenValue(),
+  const maxAge = cookieMaxAgeSecondsFromJwt(jwt);
+  const res = NextResponse.json({ success: true });
+  res.cookies.set({
+    name: STRAPI_JWT_COOKIE,
+    value: jwt,
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCookie(request),
     sameSite: "lax",
     path: "/",
     maxAge,
   });
-  response.cookies.set({
-    name: AUTH_TOKEN_COOKIE,
-    value: authData.token,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge,
-  });
-  response.cookies.set({
-    name: AUTH_SESSION_COOKIE,
-    value: authData.sessionId,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge,
-  });
-  return response;
+  return res;
 }

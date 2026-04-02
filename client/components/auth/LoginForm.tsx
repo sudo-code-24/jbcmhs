@@ -17,7 +17,7 @@ type LoginApiError = {
 
 const LoginForm = ({ nextPath }: LoginFormProps) => {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -31,14 +31,15 @@ const LoginForm = ({ nextPath }: LoginFormProps) => {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        credentials: "include",
+        body: JSON.stringify({ email: identifier, password }),
       });
 
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as LoginApiError | null;
         if (data?.requiresPasswordChange) {
           router.replace(
-            `/change-password?email=${encodeURIComponent(email)}&next=${encodeURIComponent(nextPath)}`
+            `/change-password?email=${encodeURIComponent(identifier)}&next=${encodeURIComponent(nextPath)}`
           );
           return;
         }
@@ -63,15 +64,16 @@ const LoginForm = ({ nextPath }: LoginFormProps) => {
       <CardContent>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-1.5">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
+            <label htmlFor="identifier" className="text-sm font-medium">
+              Email or username
             </label>
             <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="identifier"
+              type="text"
+              autoComplete="username"
+              inputMode="email"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               required
             />

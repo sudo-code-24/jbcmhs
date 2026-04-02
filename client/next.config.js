@@ -5,7 +5,8 @@ const withPWA = require("next-pwa")({
   register: true,
   skipWaiting: true,
   clientsClaim: true,
-  disable: false,
+  /** In dev, a service worker + `/api/*` caching breaks cookie session routes (e.g. GET /api/auth/me). */
+  disable: process.env.NODE_ENV === "development",
   runtimeCaching: [
     ...require("next-pwa/cache"),
 
@@ -26,7 +27,8 @@ const withPWA = require("next-pwa")({
       },
     },
     {
-      urlPattern: /\/api\/.*$/i,
+      /** Never let the SW own auth API GETs — cookies must reach Next unchanged. */
+      urlPattern: /\/api\/(?!auth\/)/i,
       handler: "NetworkFirst",
       method: "GET",
       options: {
@@ -51,6 +53,13 @@ const withPWA = require("next-pwa")({
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  /** Proxy Strapi uploads so `/uploads/*` works when media URLs are relative (no NEXT_PUBLIC Strapi URL). */
+  async rewrites() {
+    const raw = process.env.STRAPI_URL || process.env.NEXT_PUBLIC_STRAPI_URL || "";
+    const base = raw.replace(/\/$/, "");
+    if (!base) return [];
+    return [{ source: "/uploads/:path*", destination: `${base}/uploads/:path*` }];
+  },
 };
 
 module.exports = withPWA(nextConfig);
