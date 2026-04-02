@@ -76,12 +76,10 @@ export default function AdminDashboardTabs({
           <Building2 className="size-4 shrink-0" aria-hidden />
           School profile
         </TabsTrigger>
-        {isAdmin ? (
-          <TabsTrigger value="users" className={triggerClass}>
-            <Users className="size-4 shrink-0" aria-hidden />
-            Users
-          </TabsTrigger>
-        ) : null}
+        <TabsTrigger value="users" className={triggerClass}>
+          <Users className="size-4 shrink-0" aria-hidden />
+          User management
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="announcements">
         <AdminAnnouncements initial={announcements} />
@@ -95,11 +93,12 @@ export default function AdminDashboardTabs({
       <TabsContent value="school">
         <AdminSchoolProfile initial={schoolProfile} onDirtyChange={setSchoolDirty} />
       </TabsContent>
-      {isAdmin ? (
-        <TabsContent value="users">
-          <AdminUsers currentUsername={currentUsername} />
-        </TabsContent>
-      ) : null}
+      <TabsContent value="users">
+        <AdminUsers
+          currentUsername={currentUsername}
+          canManageUsers={isAdmin}
+        />
+      </TabsContent>
     </Tabs>
   );
 }

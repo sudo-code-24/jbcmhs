@@ -15,13 +15,10 @@ import {
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
 
-function resolveAdminTab(
-  raw: string | string[] | undefined,
-  isAdmin: boolean,
-): AdminTabValue {
+function resolveAdminTab(raw: string | string[] | undefined): AdminTabValue {
   const t = Array.isArray(raw) ? raw[0] : raw;
   if (!t || typeof t !== "string") return "announcements";
-  if (t === "users") return isAdmin ? "users" : "announcements";
+  if (t === "users") return "users";
   if (
     t === "announcements" ||
     t === "events" ||
@@ -62,7 +59,7 @@ export default async function AdminPage({
     getSchoolInfo().catch(() => null),
   ]);
 
-  const defaultTab = resolveAdminTab(searchParams.tab, isAdmin);
+  const defaultTab = resolveAdminTab(searchParams.tab);
 
   return (
     <div className="container-wide py-3 sm:py-4">
@@ -72,8 +69,8 @@ export default async function AdminPage({
             Admin
           </h1>
           <p className="mt-2 text-xs text-muted-foreground sm:text-sm">
-            Manage announcements, events, faculty board, and school profile
-            content.
+            Manage announcements, events, faculty board, school profile, and
+            user accounts.
           </p>
         </div>
 

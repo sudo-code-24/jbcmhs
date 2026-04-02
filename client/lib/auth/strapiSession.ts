@@ -1,4 +1,4 @@
-import { type JWTPayload } from "jose";
+import { decodeJwt, type JWTPayload } from "jose";
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import {
@@ -6,6 +6,7 @@ import {
   verifyStrapiJwt,
   verifyStrapiJwtEdge,
 } from "@/lib/auth/strapiJwtVerify";
+import { flattenStrapiEntity } from "@/lib/strapi/flatten";
 
 export { STRAPI_JWT_COOKIE, verifyStrapiJwt, verifyStrapiJwtEdge };
 
@@ -39,16 +40,86 @@ export function resolveAppRole(user: StrapiMeUser): "admin" | "faculty" {
   return "faculty";
 }
 
+function flattenStrapiRelation(raw: unknown): Record<string, unknown> {
+  if (!raw || typeof raw !== "object") return {};
+  const r = raw as Record<string, unknown>;
+  if (r.data !== null && typeof r.data === "object" && !Array.isArray(r.data)) {
+    return flattenStrapiEntity(r.data);
+  }
+  return flattenStrapiEntity(raw);
+}
+
+function parseStrapiUserBody(body: unknown): StrapiMeUser | null {
+  if (!body || typeof body !== "object") return null;
+  const top = body as Record<string, unknown>;
+  const wrapped =
+    top.data !== undefined && top.data !== null && typeof top.data === "object" && !Array.isArray(top.data)
+      ? top.data
+      : top;
+  const ent = flattenStrapiEntity(wrapped);
+  const id = typeof ent.id === "number" ? ent.id : undefined;
+  const documentId = typeof ent.documentId === "string" ? ent.documentId : undefined;
+  const username = typeof ent.username === "string" ? ent.username : undefined;
+  const email = typeof ent.email === "string" ? ent.email : undefined;
+  const roleRaw = ent.role;
+  let role: StrapiMeUser["role"] | undefined;
+  if (typeof roleRaw === "number") {
+    role = { id: roleRaw };
+  } else if (roleRaw !== undefined && roleRaw !== null) {
+    const rr = flattenStrapiRelation(roleRaw);
+    role = {
+      id: typeof rr.id === "number" ? rr.id : undefined,
+      name: typeof rr.name === "string" ? rr.name : undefined,
+      type: typeof rr.type === "string" ? rr.type : undefined,
+    };
+  }
+
+  return { id, documentId, username, email, role };
+}
+
+function userIdFromStrapiJwt(jwt: string): number | undefined {
+  try {
+    const id = decodeJwt(jwt).id;
+    return typeof id === "number" ? id : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Loads the signed-in Users & Permissions user. `/users/me` often omits populated `role`
+ * or returns wrapped shapes; we normalize JSON and retry `GET /users/:id?populate=role`
+ * when the role name is still missing (see strapi/strapi#13296).
+ */
 export async function fetchStrapiMe(jwt: string): Promise<StrapiMeUser | null> {
   const base = process.env.STRAPI_URL?.replace(/\/$/, "");
   if (!base) return null;
+  const headers = { Authorization: `Bearer ${jwt}` };
+
   const res = await fetch(`${base}/api/users/me?populate=role`, {
     cache: "no-store",
-    headers: { Authorization: `Bearer ${jwt}` },
+    headers,
   });
   if (!res.ok) return null;
-  const body = (await res.json().catch(() => null)) as StrapiMeUser | null;
-  return body;
+  let user = parseStrapiUserBody(await res.json().catch(() => null));
+  if (!user) return null;
+
+  const needsRoleName = !user.role?.name?.trim();
+  const uid = user.id ?? userIdFromStrapiJwt(jwt);
+  if (needsRoleName && uid != null) {
+    const res2 = await fetch(`${base}/api/users/${uid}?populate=role`, {
+      cache: "no-store",
+      headers,
+    });
+    if (res2.ok) {
+      const u2 = parseStrapiUserBody(await res2.json().catch(() => null));
+      if (u2?.role?.name) {
+        user = { ...user, role: { ...user.role, ...u2.role } };
+      }
+    }
+  }
+
+  return user;
 }
 
 /** Valid JWT in cookie (verified). Pass `request` from Route Handlers when available. */

@@ -10,9 +10,14 @@ import type { UserRow, UserRole } from "./types";
 
 type AdminUsersProps = {
   currentUsername?: string | null;
+  /** When false, show access notice only (API routes remain admin-only). */
+  canManageUsers?: boolean;
 };
 
-const AdminUsers = ({ currentUsername = null }: AdminUsersProps) => {
+const AdminUsers = ({
+  currentUsername = null,
+  canManageUsers = true,
+}: AdminUsersProps) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("faculty");
@@ -50,8 +55,9 @@ const AdminUsers = ({ currentUsername = null }: AdminUsersProps) => {
   }, []);
 
   useEffect(() => {
+    if (!canManageUsers) return;
     void loadUsers();
-  }, [loadUsers]);
+  }, [canManageUsers, loadUsers]);
 
   const resetCreateForm = useCallback(() => {
     setUsername("");
@@ -151,6 +157,22 @@ const AdminUsers = ({ currentUsername = null }: AdminUsersProps) => {
       setResettingUsername(null);
     }
   }, []);
+
+  if (!canManageUsers) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>User management</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Only administrators can create, edit, and remove user accounts.
+            Contact an administrator if you need a new login or a role change.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4 bg-transparent">
