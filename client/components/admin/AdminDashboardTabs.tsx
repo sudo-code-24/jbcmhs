@@ -53,7 +53,12 @@ export default function AdminDashboardTabs({
   );
 
   return (
-    <Tabs value={tab} onValueChange={onTabChange} className="mt-4 sm:mt-6">
+    <Tabs
+      value={tab}
+      onValueChange={onTabChange}
+      activationMode="manual"
+      className="mt-4 sm:mt-6"
+    >
       <TabsList className="inline-flex h-auto w-full min-w-0 flex-nowrap items-stretch justify-start divide-x divide-border/60 overflow-x-auto rounded-lg border border-border bg-muted/50 p-1 text-muted-foreground">
         <TabsTrigger value="announcements" className={triggerClass}>
           <Megaphone className="size-4 shrink-0" aria-hidden />

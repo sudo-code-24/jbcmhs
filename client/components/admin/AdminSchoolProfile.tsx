@@ -257,10 +257,10 @@ export default function AdminSchoolProfile({
 
   const currentSnapshot = useMemo(() => snapshotFormForDirty(form), [form]);
 
-  const isDirty = useMemo(
-    () => currentSnapshot !== savedBaselineRef.current,
-    [currentSnapshot],
-  );
+  // Compare every render: baseline lives in a ref, so memoizing only on
+  // `currentSnapshot` can leave isDirty stuck true after save when the snapshot
+  // string matches the pre-save value.
+  const isDirty = currentSnapshot !== savedBaselineRef.current;
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
