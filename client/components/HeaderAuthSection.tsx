@@ -15,6 +15,7 @@ type MePayload = {
   role?: string;
   username?: string;
   user?: { username?: string };
+  error?: string;
 };
 
 function submitLogoutForm() {
@@ -34,7 +35,12 @@ export function HeaderAuthSection() {
     (async () => {
       try {
         const res = await fetch("/api/auth/me", { credentials: "include" });
-        const data = (await res.json().catch(() => null)) as MePayload | { error?: string } | null;
+        const data = (await res.json().catch(() => null)) as MePayload | null;
+
+        if (!data || data?.error) {
+          submitLogoutForm();
+        }
+
         if (
           !cancelled &&
           res.ok &&
@@ -44,6 +50,8 @@ export function HeaderAuthSection() {
         ) {
           setMe(data as MePayload);
         }
+      } catch (error) {
+        console.error("Error fetching /api/auth/me:", error);
       } finally {
         if (!cancelled) setReady(true);
       }
@@ -74,9 +82,13 @@ export function HeaderAuthSection() {
       <DropdownMenuContent align="end" className="w-56 z-[100]" sideOffset={8}>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none text-foreground">{username}</p>
+            <p className="text-sm font-medium leading-none text-foreground">
+              {username}
+            </p>
             {role ? (
-              <p className="text-xs font-normal capitalize leading-snug text-muted-foreground">{role}</p>
+              <p className="text-xs font-normal capitalize leading-snug text-muted-foreground">
+                {role}
+              </p>
             ) : null}
           </div>
         </DropdownMenuLabel>

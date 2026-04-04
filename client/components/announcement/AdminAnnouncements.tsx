@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import { cn } from "@/lib/utils";
 
 type AdminAnnouncementsProps = {
   initial: Announcement[];
@@ -35,6 +36,27 @@ const AdminAnnouncements = ({ initial }: AdminAnnouncementsProps) => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
+
+  const allSelected = list.length > 0 && list.every((a) => selectedIds.has(a.id));
+  const selectedCount = selectedIds.size;
+
+  const toggleSelected = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(() => {
+      if (list.length === 0) return new Set();
+      if (allSelected) return new Set();
+      return new Set(list.map((a) => a.id));
+    });
+  };
 
   const resetForm = () => {
     setEditing(null);
@@ -81,6 +103,11 @@ const AdminAnnouncements = ({ initial }: AdminAnnouncementsProps) => {
     try {
       await deleteAnnouncement(id);
       setList((prev) => prev.filter((a) => a.id !== id));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       if (editing?.id === id) resetForm();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
@@ -95,9 +122,75 @@ const AdminAnnouncements = ({ initial }: AdminAnnouncementsProps) => {
     setOpen(true);
   };
 
+  const handleDeleteSelected = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (!confirm(`Delete ${ids.length} announcement(s)?`)) return;
+    setLoading(true);
+    setDeletingId(null);
+    setError("");
+    try {
+      const results = await Promise.allSettled(ids.map((id) => deleteAnnouncement(id)));
+      const succeeded: number[] = [];
+      const failed: number[] = [];
+      ids.forEach((id, i) => {
+        if (results[i].status === "fulfilled") succeeded.push(id);
+        else failed.push(id);
+      });
+      setList((prev) => prev.filter((a) => !succeeded.includes(a.id)));
+      setSelectedIds(new Set(failed));
+      if (editing && succeeded.includes(editing.id)) resetForm();
+      if (failed.length > 0) {
+        setError(
+          failed.length === ids.length
+            ? "Could not delete selected announcements."
+            : `Deleted ${succeeded.length}, but ${failed.length} could not be deleted.`,
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4 pb-24 md:pb-0">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {list.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleSelectAll}
+                disabled={loading}
+                className={cn(
+                  "h-4 w-4 rounded border border-input bg-background",
+                  "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                )}
+                aria-label="Select all announcements"
+              />
+              <span className="text-muted-foreground">Select all</span>
+            </label>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={loading || selectedCount === 0}
+              onClick={handleDeleteSelected}
+            >
+              {loading && selectedCount > 0 && deletingId === null ? (
+                <span className="inline-flex items-center gap-2">
+                  <LoadingSpinner />
+                  Deleting…
+                </span>
+              ) : (
+                `Delete selected${selectedCount > 0 ? ` (${selectedCount})` : ""}`
+              )}
+            </Button>
+          </div>
+        ) : (
+          <span />
+        )}
         <Button
           type="button"
           className="fixed bottom-6 right-6 z-50 rounded-full shadow-xl md:static md:rounded-md md:shadow-none"
@@ -147,17 +240,30 @@ const AdminAnnouncements = ({ initial }: AdminAnnouncementsProps) => {
           <li key={a.id}>
             <Card>
               <CardContent className="flex flex-wrap items-center justify-between gap-2 p-3">
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">{a.title}</p>
-                  <Badge className="mt-1 ml-0" variant="secondary">
-                    {a.category}
-                  </Badge>
-                </div>
+                <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(a.id)}
+                    onChange={() => toggleSelected(a.id)}
+                    disabled={loading}
+                    className={cn(
+                      "mt-1 h-4 w-4 shrink-0 rounded border border-input bg-background",
+                      "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    )}
+                    aria-label={`Select ${a.title}`}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{a.title}</p>
+                    <Badge className="mt-1 ml-0" variant="secondary">
+                      {a.category}
+                    </Badge>
+                  </div>
+                </label>
                 <div className="flex gap-2">
                   <Button
                     type="button"
                     variant="ghost"
-                    disabled={deletingId != null}
+                    disabled={loading}
                     size="sm"
                     onClick={() => startEdit(a)}
                   >
