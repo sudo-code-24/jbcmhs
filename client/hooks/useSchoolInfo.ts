@@ -17,7 +17,10 @@ type UseSchoolInfoResult = {
   error: string;
 };
 
-export function useSchoolInfo({ fetchSchoolInfo, fallback }: UseSchoolInfoOptions): UseSchoolInfoResult {
+export function useSchoolInfo({
+  fetchSchoolInfo,
+  fallback,
+}: UseSchoolInfoOptions): UseSchoolInfoResult {
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>(fallback);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -32,7 +35,11 @@ export function useSchoolInfo({ fetchSchoolInfo, fallback }: UseSchoolInfoOption
         setSchoolInfo(data);
       } catch (err) {
         if (!active) return;
-        setError(err instanceof Error ? err.message : "Failed to load school information");
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load school information",
+        );
       } finally {
         if (active) setIsLoading(false);
       }
@@ -51,4 +58,3 @@ export function useSchoolInfo({ fetchSchoolInfo, fallback }: UseSchoolInfoOption
     error,
   };
 }
-

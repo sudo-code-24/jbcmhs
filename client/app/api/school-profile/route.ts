@@ -44,18 +44,23 @@ export async function PUT(request: NextRequest) {
   try {
     const parsed = sfRaw ? JSON.parse(String(sfRaw)) : [];
     if (Array.isArray(parsed)) {
-      showcaseFeatures = parsed.map((row: unknown) => {
-        if (!row || typeof row !== "object") return { title: "" };
-        const o = row as Record<string, unknown>;
-        return {
-          title: String(o.title ?? "").trim(),
-          text: String(o.text ?? ""),
-          icon: String(o.icon ?? ""),
-        };
-      }).filter((r) => r.title.length > 0);
+      showcaseFeatures = parsed
+        .map((row: unknown) => {
+          if (!row || typeof row !== "object") return { title: "" };
+          const o = row as Record<string, unknown>;
+          return {
+            title: String(o.title ?? "").trim(),
+            text: String(o.text ?? ""),
+            icon: String(o.icon ?? ""),
+          };
+        })
+        .filter((r) => r.title.length > 0);
     }
   } catch {
-    return NextResponse.json({ error: "Invalid showcaseFeatures JSON" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid showcaseFeatures JSON" },
+      { status: 400 },
+    );
   }
 
   const heroFile = formData.get("files.heroImage");
@@ -80,25 +85,39 @@ export async function PUT(request: NextRequest) {
         showcaseFeatures,
       },
       {
-        heroImage: heroFile instanceof File && heroFile.size > 0 ? heroFile : undefined,
-        schoolInfoImage: schoolFile instanceof File && schoolFile.size > 0 ? schoolFile : undefined,
+        heroImage:
+          heroFile instanceof File && heroFile.size > 0 ? heroFile : undefined,
+        schoolInfoImage:
+          schoolFile instanceof File && schoolFile.size > 0
+            ? schoolFile
+            : undefined,
         heroName: heroFile instanceof File ? heroFile.name : undefined,
-        schoolInfoName: schoolFile instanceof File ? schoolFile.name : undefined,
+        schoolInfoName:
+          schoolFile instanceof File ? schoolFile.name : undefined,
       },
     );
 
     const raw = await fetchSchoolProfilePopulated();
     const client = strapiSchoolProfileToClient(raw);
     if (!client) {
-      return NextResponse.json({ error: "Unable to load school profile after save" }, { status: 502 });
+      return NextResponse.json(
+        { error: "Unable to load school profile after save" },
+        { status: 502 },
+      );
     }
     return NextResponse.json(client);
   } catch (e) {
-    const status = e instanceof Error && "status" in e ? (e as Error & { status: number }).status : 500;
+    const status =
+      e instanceof Error && "status" in e
+        ? (e as Error & { status: number }).status
+        : 500;
     if (process.env.NODE_ENV !== "production") {
       // eslint-disable-next-line no-console
       console.error("[school-profile PUT]", e);
     }
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Request failed" }, { status });
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Request failed" },
+      { status },
+    );
   }
 }
